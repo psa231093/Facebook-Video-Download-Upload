@@ -4,778 +4,676 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facebook Video Downloader</title>
+    
+    <!-- Bootstrap 5.3.2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Custom CSS for Facebook branding and specific styling -->
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --facebook-blue: #1877f2;
+            --facebook-blue-hover: #166fe5;
+            --facebook-gray: #f0f2f5;
+            --facebook-dark-gray: #65676b;
+            --success-green: #42ba96;
+            --warning-yellow: #f59e0b;
+            --error-red: #ef4444;
+            --gradient-primary: linear-gradient(135deg, var(--facebook-blue) 0%, #8b5fbf 100%);
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-primary);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
 
-        .container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
+        .main-container {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            margin: 2rem auto;
+            max-width: 900px;
         }
 
-        .header {
+        .app-header {
+            background: var(--gradient-primary);
+            color: white;
             text-align: center;
-            margin-bottom: 30px;
+            padding: 2rem;
+            border-radius: 20px 20px 0 0;
         }
 
-        .header h1 {
-            color: #333;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+        .app-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
         }
 
-        .header p {
-            color: #666;
-            font-size: 1.1em;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-        }
-
-        input[type="url"] {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        input[type="url"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        input[type="number"] {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        input[type="number"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .download-mode {
-            display: flex;
-            margin-bottom: 20px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
+        .facebook-preview-card {
+            background: white;
+            border: 1px solid #e4e6ea;
+            border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            margin: 1.5rem 0;
         }
 
-        .mode-tab {
-            flex: 1;
-            padding: 15px;
-            background: #f8f9fa;
-            border: none;
-            cursor: pointer;
+        .facebook-preview-card.show {
+            display: block !important;
+        }
+
+        .preview-header {
+            background: var(--facebook-gray);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e4e6ea;
+        }
+
+        .preview-header h5 {
+            color: var(--facebook-blue);
             font-weight: 600;
-            transition: all 0.3s;
+            margin: 0;
         }
 
-        .mode-tab.active {
-            background: #667eea;
+        .custom-tab {
+            border: none;
+            background: var(--facebook-blue);
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .custom-tab:hover {
+            background: var(--facebook-blue-hover);
             color: white;
         }
 
-        .mode-tab:hover:not(.active) {
-            background: #e9ecef;
+        .custom-tab.active {
+            background: white !important;
+            color: var(--facebook-blue) !important;
+            border-bottom: 3px solid var(--facebook-blue);
         }
 
-        .download-section {
-            display: none;
+        .status-alert {
+            border: none;
+            border-radius: 12px;
+            margin: 1rem 0;
         }
 
-        .download-section.active {
-            display: block;
+        .btn-facebook {
+            background: var(--facebook-blue);
+            border: none;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
 
-        .batch-options {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #17a2b8;
+        .btn-facebook:hover {
+            background: var(--facebook-blue-hover);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(24, 119, 242, 0.3);
         }
 
-        .batch-progress {
-            margin-top: 15px;
-            padding: 15px;
-            background: #e3f2fd;
-            border-radius: 8px;
-            display: none;
+        .form-floating > label {
+            color: var(--facebook-dark-gray);
         }
 
-        .batch-progress.show {
-            display: block;
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--facebook-blue);
+            box-shadow: 0 0 0 0.25rem rgba(24, 119, 242, 0.25);
         }
 
-        .batch-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 10px;
-            margin-bottom: 15px;
+        .progress-custom {
+            height: 8px;
+            border-radius: 10px;
+            background: var(--facebook-gray);
         }
 
-        .stat-item {
+        .progress-bar-custom {
+            background: var(--gradient-primary);
+            border-radius: 10px;
+        }
+
+        .batch-stat-card {
+            background: linear-gradient(135deg, var(--facebook-blue), var(--facebook-blue-hover));
+            color: white;
+            border-radius: 12px;
+            padding: 1rem;
             text-align: center;
-            padding: 10px;
+            border: none;
+        }
+
+        .downloads-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .download-item-modern {
+            border-bottom: 1px solid var(--facebook-gray);
+            padding: 1rem;
+            transition: background 0.2s ease;
+        }
+
+        .download-item-modern:hover {
+            background: var(--facebook-gray);
+        }
+
+        .download-item-modern:last-child {
+            border-bottom: none;
+        }
+
+        .download-card-item {
+            min-width: 280px;
+            max-width: 280px;
+            margin-right: 1rem;
             background: white;
-            border-radius: 5px;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--facebook-gray);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .stat-number {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #667eea;
+        .download-card-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
 
-        .stat-label {
-            font-size: 0.9em;
-            color: #666;
+        .download-card-item:last-child {
+            margin-right: 0;
         }
 
-        .current-video {
-            font-weight: 500;
-            color: #333;
-            margin-top: 10px;
-            padding: 8px;
-            background: white;
-            border-radius: 5px;
+        .downloads-slider-container {
+            position: relative;
         }
 
-        .checkbox-group {
+        .video-thumbnail {
+            width: 100%;
+            height: 120px;
+            background: var(--facebook-gray);
+            border-radius: 8px;
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
         }
 
-        input[type="checkbox"] {
-            margin-right: 10px;
-            transform: scale(1.2);
+        .video-info {
+            flex: 1;
+        }
+
+        .video-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            line-height: 1.3;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .video-meta {
+            font-size: 0.8rem;
+            color: var(--facebook-dark-gray);
+            margin-bottom: 0.75rem;
         }
 
         .cookies-section {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--warning-yellow);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
             display: none;
-            margin-top: 15px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #ffc107;
         }
 
         .cookies-section.show {
             display: block;
         }
 
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            resize: vertical;
-            min-height: 100px;
-            font-family: monospace;
-            font-size: 12px;
+        .upload-settings-card {
+            background: rgba(66, 186, 150, 0.1);
+            border: 1px solid var(--success-green);
+            border-radius: 12px;
+            margin: 1rem 0;
         }
 
-        .btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 1rem;
+                border-radius: 15px;
+            }
+
+            .app-header {
+                padding: 1.5rem;
+                border-radius: 15px 15px 0 0;
+            }
+
+            .app-header h1 {
+                font-size: 2rem;
+            }
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
         }
 
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            display: none;
-        }
-
-        .status.show {
-            display: block;
-        }
-
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #e1e5e9;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .downloads-section {
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 2px solid #e1e5e9;
-        }
-
-        .downloads-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e1e5e9;
-            border-radius: 8px;
-        }
-
-        .download-item {
-            padding: 10px 15px;
-            border-bottom: 1px solid #e1e5e9;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .download-item:last-child {
-            border-bottom: none;
-        }
-
-        .download-item:hover {
-            background: #f8f9fa;
-        }
-
-        .file-name {
-            font-weight: 500;
-            color: #333;
-        }
-
-        .file-size {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .download-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-            padding: 5px 10px;
-            border-radius: 5px;
-            transition: background 0.2s;
-        }
-
-        .download-link:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        .warning {
-            background: #fff3cd;
-            color: #856404;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 0.9em;
-            margin-top: 10px;
-        }
-
-        .facebook-preview {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 20px 0;
-            overflow: hidden;
-            display: none;
-        }
-
-        .facebook-preview.show {
-            display: block;
-        }
-
-        .facebook-preview-header {
-            background: #f5f6f7;
-            padding: 15px;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            align-items: center;
-        }
-
-        .facebook-preview-header h3 {
-            margin: 0;
-            color: #1877f2;
-            font-size: 1.2em;
-        }
-
-        .facebook-preview-content {
-            padding: 20px;
-        }
-
-        .preview-video-info {
-            display: flex;
-            align-items: flex-start;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .preview-thumbnail {
-            width: 120px;
-            height: 68px;
-            background: #f0f2f5;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #65676b;
-            font-size: 0.9em;
-            flex-shrink: 0;
-        }
-
-        .preview-video-details {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .preview-title {
-            font-size: 1.1em;
-            font-weight: 600;
-            color: #1c1e21;
-            margin: 0 0 8px 0;
-            line-height: 1.3;
-            word-wrap: break-word;
-        }
-
-        .preview-description {
-            color: #65676b;
-            font-size: 0.95em;
-            line-height: 1.4;
-            margin: 8px 0 0 0;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .preview-meta {
-            font-size: 0.85em;
-            color: #8a8d91;
-            margin-top: 10px;
-        }
-
-        .preview-actions {
-            display: flex;
-            gap: 10px;
-            padding: 15px 20px;
-            background: #f5f6f7;
-            border-top: 1px solid #ddd;
-        }
-
-        .preview-btn {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            font-size: 0.95em;
-        }
-
-        .preview-btn.confirm {
-            background: #1877f2;
-            color: white;
-        }
-
-        .preview-btn.confirm:hover {
-            background: #166fe5;
-        }
-
-        .preview-btn.cancel {
-            background: #e4e6ea;
-            color: #1c1e21;
-        }
-
-        .preview-btn.cancel:hover {
-            background: #d8dadf;
-        }
-
-        .preview-btn:disabled {
-            background: #bcc0c4;
-            color: #8a8d91;
-            cursor: not-allowed;
-        }
-
-        .preview-loading {
-            text-align: center;
-            padding: 40px 20px;
-            color: #65676b;
-        }
-
-        .preview-loading .spinner {
-            width: 24px;
-            height: 24px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #1877f2;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎥 Facebook Video Downloader</h1>
-            <p>Download videos from Facebook easily and securely</p>
-        </div>
-
-        <!-- Download Mode Selector -->
-        <div class="download-mode">
-            <button type="button" class="mode-tab active" id="singleModeTab">Single Video</button>
-            <button type="button" class="mode-tab" id="batchModeTab">Batch Download</button>
-        </div>
-
-        <!-- Single Video Download -->
-        <div class="download-section active" id="singleDownloadSection">
-            <form id="downloadForm">
-            <div class="form-group">
-                <label for="videoUrl">Facebook Video URL:</label>
-                <input 
-                    type="url" 
-                    id="videoUrl" 
-                    name="videoUrl" 
-                    placeholder="https://www.facebook.com/watch/?v=123456789"
-                    required
-                >
+    <div class="container-fluid py-3">
+        <div class="main-container">
+            <!-- App Header -->
+            <div class="app-header">
+                <h1><i class="bi bi-facebook"></i> Facebook Video Downloader</h1>
+                <p class="mb-0 fs-5">Download and upload videos with smart preview system</p>
             </div>
 
-            <div class="checkbox-group">
-                <input type="checkbox" id="useCookies" name="useCookies">
-                <label for="useCookies">Use authentication (for private videos)</label>
-            </div>
-
-            <div class="cookies-section" id="cookiesSection">
-                <label for="cookiesContent">Paste your cookies.txt content here:</label>
-                <textarea 
-                    id="cookiesContent" 
-                    name="cookiesContent" 
-                    placeholder="# Netscape HTTP Cookie File
-.facebook.com	TRUE	/	FALSE	1234567890	cookie_name	cookie_value"
-                ></textarea>
-                <div class="warning">
-                    <strong>Privacy Note:</strong> Your cookies are only used for this download and are not stored on the server.
+            <!-- Main Content -->
+            <div class="p-4">
+                <!-- Navigation Tabs -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <ul class="nav nav-pills nav-fill" id="downloadTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link custom-tab active" id="single-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#single-content" type="button" role="tab">
+                                    <i class="bi bi-download me-2"></i>Single Video
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link custom-tab" id="batch-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#batch-content" type="button" role="tab">
+                                    <i class="bi bi-collection-play me-2"></i>Batch Download
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Facebook Upload Settings for Single Video -->
-            <div class="batch-options">
-                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4caf50;">
-                    <h4 style="margin: 0 0 10px 0; color: #2e7d32;">🚀 Facebook Auto-Upload</h4>
+                <!-- Tab Content -->
+                <div class="tab-content fade-in" id="downloadTabContent">
                     
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="singleAutoUploadEnabled" name="singleAutoUploadEnabled">
-                        <label for="singleAutoUploadEnabled">Automatically upload downloaded video to Facebook</label>
-                    </div>
-                    
-                    <div class="form-group" style="margin-top: 15px;">
-                        <label for="singleVideoTitlePrefix">Video title prefix (optional):</label>
-                        <input 
-                            type="text" 
-                            id="singleVideoTitlePrefix" 
-                            name="singleVideoTitlePrefix" 
-                            placeholder="e.g., '[Downloaded] '"
-                            style="padding: 10px; border: 2px solid #e1e5e9; border-radius: 5px; width: 100%;"
-                        >
-                    </div>
-                    
-                    <div class="form-group" style="margin-top: 10px;">
-                        <label for="singleVideoDescription">Video description:</label>
-                        <textarea 
-                            id="singleVideoDescription" 
-                            name="singleVideoDescription" 
-                            placeholder="Uploaded via Facebook Video Downloader"
-                            rows="2"
-                            style="padding: 10px; border: 2px solid #e1e5e9; border-radius: 5px; width: 100%; resize: vertical;"
-                        ></textarea>
-                    </div>
-                    
-                    <div class="warning" style="margin-top: 10px; background: #fff3cd; color: #856404;">
-                        <strong>Note:</strong> Make sure you've added your Facebook access token to the configuration file (.env or config.py).
-                    </div>
-                </div>
-            </div>
+                    <!-- Single Video Download Tab -->
+                    <div class="tab-pane fade show active" id="single-content" role="tabpanel">
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body">
+                                <form id="downloadForm">
+                                    <!-- Video URL Input -->
+                                    <div class="form-floating mb-4">
+                                        <input type="url" class="form-control" id="videoUrl" name="videoUrl" 
+                                               placeholder="https://www.facebook.com/watch/?v=123456789" required>
+                                        <label for="videoUrl">
+                                            <i class="bi bi-link-45deg me-2"></i>Facebook Video URL
+                                        </label>
+                                    </div>
 
-                <button type="submit" class="btn" id="downloadBtn">
-                    Download Video
-                </button>
-            </form>
-        </div>
+                                    <!-- Authentication Toggle -->
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="useCookies" name="useCookies">
+                                        <label class="form-check-label" for="useCookies">
+                                            <i class="bi bi-shield-lock me-2"></i>Use authentication for private videos
+                                        </label>
+                                    </div>
 
-        <!-- Batch Download -->
-        <div class="download-section" id="batchDownloadSection">
-            <div class="warning" style="margin-bottom: 20px;">
-                <strong>Note:</strong> Facebook page URLs are not supported by yt-dlp. Please paste individual video URLs below.
-            </div>
-            
-            <form id="batchDownloadForm">
-                <div class="form-group">
-                    <label for="videoUrls">Facebook Video URLs (one per line):</label>
-                    <textarea 
-                        id="videoUrls" 
-                        name="videoUrls" 
-                        placeholder="https://www.facebook.com/watch/?v=123456789
-https://www.facebook.com/watch/?v=987654321
-https://www.facebook.com/watch/?v=456789123"
-                        required
-                        rows="6"
-                        style="font-family: monospace; font-size: 14px;"
-                    ></textarea>
-                    <small style="color: #666; margin-top: 5px; display: block;">
-                        Enter Facebook video URLs, one per line. Max 20 videos per batch.
-                    </small>
-                </div>
+                                    <!-- Cookies Section -->
+                                    <div class="cookies-section" id="cookiesSection">
+                                        <div class="alert alert-warning d-flex align-items-start">
+                                            <i class="bi bi-info-circle me-3 fs-5"></i>
+                                            <div>
+                                                <h6 class="alert-heading mb-2">Authentication Required</h6>
+                                                <p class="mb-0">
+                                                    <strong>Privacy Note:</strong> Your cookies are only used for this download 
+                                                    and are not stored on the server.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="form-floating">
+                                            <textarea class="form-control" id="cookiesContent" name="cookiesContent" 
+                                                      style="height: 120px; font-family: monospace; font-size: 0.875rem;"
+                                                      placeholder="# Netscape HTTP Cookie File&#10;.facebook.com&#9;TRUE&#9;/&#9;FALSE&#9;1234567890&#9;cookie_name&#9;cookie_value"></textarea>
+                                            <label for="cookiesContent">Paste your cookies.txt content here</label>
+                                        </div>
+                                    </div>
 
-                <div class="batch-options">
-                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <h4 style="margin: 0 0 10px 0; color: #1976d2;">💡 How to get Facebook video URLs:</h4>
-                        <ol style="margin: 0; padding-left: 20px; color: #666;">
-                            <li>Go to the Facebook page/profile</li>
-                            <li>Click on each video you want to download</li>
-                            <li>Copy the URL from your browser's address bar</li>
-                            <li>Paste each URL on a new line above</li>
-                        </ol>
-                        <p style="margin: 10px 0 0 0; color: #666; font-size: 0.9em;">
-                            <strong>Tip:</strong> Video URLs usually look like: <code>https://www.facebook.com/watch/?v=123456789</code>
-                        </p>
-                    </div>
-                </div>
+                                    <!-- Facebook Auto-Upload Settings -->
+                                    <div class="upload-settings-card card">
+                                        <div class="card-header bg-transparent">
+                                            <h6 class="card-title mb-0">
+                                                <i class="bi bi-facebook me-2"></i>Facebook Auto-Upload Settings
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="singleAutoUploadEnabled" 
+                                                       name="singleAutoUploadEnabled">
+                                                <label class="form-check-label" for="singleAutoUploadEnabled">
+                                                    Automatically upload downloaded video to Facebook
+                                                </label>
+                                            </div>
+                                            
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <input type="text" class="form-control" id="singleVideoTitlePrefix" 
+                                                               name="singleVideoTitlePrefix" placeholder="[Downloaded] ">
+                                                        <label for="singleVideoTitlePrefix">Title prefix (optional)</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <textarea class="form-control" id="singleVideoDescription" 
+                                                                  name="singleVideoDescription" style="height: 58px;"
+                                                                  placeholder="Video description"></textarea>
+                                                        <label for="singleVideoDescription">Description</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="alert alert-info mt-3 d-flex align-items-start">
+                                                <i class="bi bi-info-circle me-3 fs-5"></i>
+                                                <div>
+                                                    <small>
+                                                        <strong>Note:</strong> Make sure your Facebook access token is configured 
+                                                        in the settings file (.env or config.py).
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                <!-- Facebook Upload Settings -->
-                <div class="batch-options">
-                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4caf50;">
-                        <h4 style="margin: 0 0 10px 0; color: #2e7d32;">🚀 Facebook Auto-Upload</h4>
-                        
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="autoUploadEnabled" name="autoUploadEnabled">
-                            <label for="autoUploadEnabled">Automatically upload downloaded videos to Facebook</label>
-                        </div>
-                        
-                        <div class="form-group" style="margin-top: 15px;">
-                            <label for="videoTitlePrefix">Video title prefix (optional):</label>
-                            <input 
-                                type="text" 
-                                id="videoTitlePrefix" 
-                                name="videoTitlePrefix" 
-                                placeholder="e.g., '[Downloaded] '"
-                                style="padding: 10px; border: 2px solid #e1e5e9; border-radius: 5px; width: 100%;"
-                            >
-                        </div>
-                        
-                        <div class="form-group" style="margin-top: 10px;">
-                            <label for="videoDescription">Video description:</label>
-                            <textarea 
-                                id="videoDescription" 
-                                name="videoDescription" 
-                                placeholder="Uploaded via Facebook Video Downloader"
-                                rows="2"
-                                style="padding: 10px; border: 2px solid #e1e5e9; border-radius: 5px; width: 100%; resize: vertical;"
-                            ></textarea>
-                        </div>
-                        
-                        <div class="warning" style="margin-top: 10px; background: #fff3cd; color: #856404;">
-                            <strong>Note:</strong> Make sure you've added your Facebook access token to the configuration file (.env or config.py).
+                                    <!-- Download Button -->
+                                    <div class="d-grid mt-4">
+                                        <button type="submit" class="btn btn-facebook btn-lg" id="downloadBtn">
+                                            <i class="bi bi-download me-2"></i>Download Video
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="checkbox-group">
-                    <input type="checkbox" id="batchUseCookies" name="batchUseCookies">
-                    <label for="batchUseCookies">Use authentication (for private videos)</label>
-                </div>
+                    <!-- Batch Download Tab -->
+                    <div class="tab-pane fade" id="batch-content" role="tabpanel">
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body">
+                                <!-- Info Alert -->
+                                <div class="alert alert-info d-flex align-items-start mb-4">
+                                    <i class="bi bi-info-circle me-3 fs-5"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-2">Batch Download Instructions</h6>
+                                        <p class="mb-0">Facebook page URLs are not supported. Please paste individual video URLs below, one per line (max 20 videos).</p>
+                                    </div>
+                                </div>
 
-                <div class="cookies-section" id="batchCookiesSection">
-                    <label for="batchCookiesContent">Paste your cookies.txt content here:</label>
-                    <textarea 
-                        id="batchCookiesContent" 
-                        name="batchCookiesContent" 
-                        placeholder="# Netscape HTTP Cookie File
-.facebook.com	TRUE	/	FALSE	1234567890	cookie_name	cookie_value"
-                    ></textarea>
-                    <div class="warning">
-                        <strong>Privacy Note:</strong> Your cookies are only used for this download and are not stored on the server.
-                    </div>
-                </div>
+                                <form id="batchDownloadForm">
+                                    <!-- Video URLs Input -->
+                                    <div class="form-floating mb-4">
+                                        <textarea class="form-control" id="videoUrls" name="videoUrls" 
+                                                  style="height: 200px; font-family: monospace; font-size: 0.875rem;"
+                                                  placeholder="https://www.facebook.com/watch/?v=123456789&#10;https://www.facebook.com/watch/?v=987654321&#10;https://www.facebook.com/watch/?v=456789123" 
+                                                  required></textarea>
+                                        <label for="videoUrls">
+                                            <i class="bi bi-list-ul me-2"></i>Facebook Video URLs (one per line)
+                                        </label>
+                                    </div>
 
-                <button type="submit" class="btn" id="batchDownloadBtn">
-                    Start Batch Download
-                </button>
-            </form>
+                                    <!-- How to Get URLs Card -->
+                                    <div class="card border-primary mb-4">
+                                        <div class="card-header bg-primary text-white">
+                                            <h6 class="card-title mb-0">
+                                                <i class="bi bi-lightbulb me-2"></i>How to get Facebook video URLs
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <ol class="mb-2">
+                                                <li>Go to the Facebook page/profile</li>
+                                                <li>Click on each video you want to download</li>
+                                                <li>Copy the URL from your browser's address bar</li>
+                                                <li>Paste each URL on a new line above</li>
+                                            </ol>
+                                            <div class="alert alert-light mb-0">
+                                                <small>
+                                                    <strong>Tip:</strong> Video URLs usually look like: 
+                                                    <code>https://www.facebook.com/watch/?v=123456789</code>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
 
-            <!-- Batch Progress -->
-            <div class="batch-progress" id="batchProgress">
-                <h4>Batch Download Progress</h4>
-                <div class="batch-stats" id="batchStats">
-                    <div class="stat-item">
-                        <div class="stat-number" id="totalVideos">0</div>
-                        <div class="stat-label">Total</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="completedVideos">0</div>
-                        <div class="stat-label">Completed</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="failedVideos">0</div>
-                        <div class="stat-label">Failed</div>
-                    </div>
-                </div>
-                <div class="current-video" id="currentVideo">
-                    Initializing...
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="batchProgressFill"></div>
-                </div>
-            </div>
-        </div>
+                                    <!-- Facebook Auto-Upload Settings -->
+                                    <div class="upload-settings-card card mb-4">
+                                        <div class="card-header bg-transparent">
+                                            <h6 class="card-title mb-0">
+                                                <i class="bi bi-facebook me-2"></i>Batch Facebook Auto-Upload Settings
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="autoUploadEnabled" 
+                                                       name="autoUploadEnabled">
+                                                <label class="form-check-label" for="autoUploadEnabled">
+                                                    Automatically upload all downloaded videos to Facebook
+                                                </label>
+                                            </div>
+                                            
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <input type="text" class="form-control" id="videoTitlePrefix" 
+                                                               name="videoTitlePrefix" placeholder="[Downloaded] ">
+                                                        <label for="videoTitlePrefix">Title prefix (optional)</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-floating">
+                                                        <textarea class="form-control" id="videoDescription" 
+                                                                  name="videoDescription" style="height: 58px;"
+                                                                  placeholder="Video description"></textarea>
+                                                        <label for="videoDescription">Description</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-        <div class="status" id="statusDiv">
-            <div id="statusMessage"></div>
-            <div class="progress-bar" id="progressBar" style="display: none;">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-        </div>
+                                    <!-- Authentication -->
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="batchUseCookies" name="batchUseCookies">
+                                        <label class="form-check-label" for="batchUseCookies">
+                                            <i class="bi bi-shield-lock me-2"></i>Use authentication for private videos
+                                        </label>
+                                    </div>
 
-        <!-- Facebook Preview Component -->
-        <div class="facebook-preview" id="facebookPreview">
-            <div class="facebook-preview-header">
-                <h3>📺 Facebook Upload Preview</h3>
-            </div>
-            <div class="facebook-preview-content">
-                <div class="preview-video-info">
-                    <div class="preview-thumbnail" id="previewThumbnail">
-                        🎥 Video
-                    </div>
-                    <div class="preview-video-details">
-                        <div class="preview-title" id="previewTitle">
-                            Video Title
+                                    <!-- Batch Cookies Section -->
+                                    <div class="cookies-section" id="batchCookiesSection">
+                                        <div class="alert alert-warning d-flex align-items-start">
+                                            <i class="bi bi-info-circle me-3 fs-5"></i>
+                                            <div>
+                                                <h6 class="alert-heading mb-2">Authentication Required</h6>
+                                                <p class="mb-0">
+                                                    <strong>Privacy Note:</strong> Your cookies are only used for this download 
+                                                    and are not stored on the server.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="form-floating">
+                                            <textarea class="form-control" id="batchCookiesContent" name="batchCookiesContent" 
+                                                      style="height: 120px; font-family: monospace; font-size: 0.875rem;"
+                                                      placeholder="# Netscape HTTP Cookie File&#10;.facebook.com&#9;TRUE&#9;/&#9;FALSE&#9;1234567890&#9;cookie_name&#9;cookie_value"></textarea>
+                                            <label for="batchCookiesContent">Paste your cookies.txt content here</label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Download Button -->
+                                    <div class="d-grid mt-4">
+                                        <button type="submit" class="btn btn-facebook btn-lg" id="batchDownloadBtn">
+                                            <i class="bi bi-collection-play me-2"></i>Start Batch Download
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <!-- Batch Progress Card -->
+                                <div class="card border-0 shadow-sm mt-4 d-none" id="batchProgress">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="card-title mb-0">
+                                            <i class="bi bi-activity me-2"></i>Batch Download Progress
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Stats Row -->
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-4">
+                                                <div class="batch-stat-card">
+                                                    <div class="h4 mb-0" id="totalVideos">0</div>
+                                                    <small class="opacity-75">Total Videos</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="batch-stat-card">
+                                                    <div class="h4 mb-0" id="completedVideos">0</div>
+                                                    <small class="opacity-75">Completed</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="batch-stat-card">
+                                                    <div class="h4 mb-0" id="failedVideos">0</div>
+                                                    <small class="opacity-75">Failed</small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Current Video -->
+                                        <div class="alert alert-light">
+                                            <strong>Current:</strong> <span id="currentVideo">Initializing...</span>
+                                        </div>
+
+                                        <!-- Progress Bar -->
+                                        <div class="progress progress-custom">
+                                            <div class="progress-bar progress-bar-custom" role="progressbar" 
+                                                 id="batchProgressFill" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="preview-description" id="previewDescription">
-                            Video description...
-                        </div>
-                        <div class="preview-meta" id="previewMeta">
-                            Ready to upload
+                    </div>
+                </div>
+
+                <!-- Status Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div id="statusDiv" class="d-none"></div>
+                        <div class="progress progress-custom d-none" id="progressBar">
+                            <div class="progress-bar progress-bar-custom" role="progressbar" id="progressFill" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="preview-actions">
-                <button class="preview-btn cancel" id="previewCancelBtn">
-                    ❌ Cancel Upload
-                </button>
-                <button class="preview-btn confirm" id="previewConfirmBtn">
-                    ✅ Upload to Facebook
-                </button>
-            </div>
-        </div>
 
-        <div class="downloads-section">
-            <h3>Downloaded Files</h3>
-            <div class="downloads-list" id="downloadsList">
-                <div style="padding: 20px; text-align: center; color: #666;">
-                    Loading downloads...
+                <!-- Facebook Preview Component -->
+                <div class="facebook-preview-card d-none" id="facebookPreview">
+                    <div class="preview-header">
+                        <h5><i class="bi bi-facebook me-2"></i>Facebook Upload Preview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-start">
+                            <div class="col-md-3">
+                                <div class="preview-thumbnail bg-light rounded d-flex align-items-center justify-content-center" 
+                                     id="previewThumbnail" style="height: 120px;">
+                                    <i class="bi bi-play-circle fs-1 text-muted"></i>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <h6 class="fw-bold mb-2" id="previewTitle">Video Title</h6>
+                                <p class="text-muted mb-2" id="previewDescription">Video description...</p>
+                                <small class="text-secondary" id="previewMeta">Ready to upload</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button class="btn btn-outline-secondary w-100" id="previewCancelBtn">
+                                    <i class="bi bi-x-circle me-2"></i>Cancel Upload
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-facebook w-100" id="previewConfirmBtn">
+                                    <i class="bi bi-upload me-2"></i>Upload to Facebook
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Downloaded Files Section -->
+                <div class="downloads-card card mt-4">
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-download me-2"></i>Recent Downloads
+                        </h5>
+                        <div class="d-flex align-items-center">
+                            <small class="text-muted me-3">Last 5 videos</small>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-secondary" id="downloadsSliderPrev" disabled>
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" id="downloadsSliderNext" disabled>
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="downloads-slider-container" style="overflow: hidden;">
+                            <div class="downloads-slider" id="downloadsSlider" style="display: flex; transition: transform 0.3s ease;">
+                                <div id="downloadsList" class="d-flex" style="min-width: 100%;">
+                                    <div class="text-center p-4 text-muted w-100">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        Loading downloads...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Bootstrap 5.3.2 JavaScript Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
+            crossorigin="anonymous"></script>
+    </div>
+
     <script>
-        // Mode switching
-        document.getElementById('singleModeTab').addEventListener('click', function() {
-            switchMode('single');
+        // Bootstrap Tab Event Listeners (Bootstrap handles tab switching automatically)
+        const singleTab = document.getElementById('single-tab');
+        const batchTab = document.getElementById('batch-tab');
+        
+        // Add fade-in animations when tabs are shown
+        singleTab.addEventListener('shown.bs.tab', function (e) {
+            document.getElementById('single-content').classList.add('fade-in');
         });
-
-        document.getElementById('batchModeTab').addEventListener('click', function() {
-            switchMode('batch');
+        
+        batchTab.addEventListener('shown.bs.tab', function (e) {
+            document.getElementById('batch-content').classList.add('fade-in');
         });
-
-        function switchMode(mode) {
-            // Update tabs
-            document.querySelectorAll('.mode-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.download-section').forEach(section => section.classList.remove('active'));
-            
-            if (mode === 'single') {
-                document.getElementById('singleModeTab').classList.add('active');
-                document.getElementById('singleDownloadSection').classList.add('active');
-            } else {
-                document.getElementById('batchModeTab').classList.add('active');
-                document.getElementById('batchDownloadSection').classList.add('active');
-            }
-        }
 
         // Toggle cookies section for single download
         document.getElementById('useCookies').addEventListener('change', function() {
@@ -821,8 +719,9 @@ https://www.facebook.com/watch/?v=456789123"
             }
 
             // Disable form
-            document.getElementById('downloadBtn').disabled = true;
-            document.getElementById('downloadBtn').textContent = 'Starting Download...';
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Starting Download...';
             
             try {
                 const response = await fetch('/download', {
@@ -920,8 +819,9 @@ https://www.facebook.com/watch/?v=456789123"
             console.log('✅ Form validation passed');
 
             // Disable form
-            document.getElementById('batchDownloadBtn').disabled = true;
-            document.getElementById('batchDownloadBtn').textContent = 'Starting Batch Download...';
+            const batchDownloadBtn = document.getElementById('batchDownloadBtn');
+            batchDownloadBtn.disabled = true;
+            batchDownloadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Starting Batch Download...';
             
             try {
                 const requestData = {
@@ -980,7 +880,7 @@ https://www.facebook.com/watch/?v=456789123"
         async function pollBatchDownloadStatus(downloadId) {
             console.log('📊 Starting batch download polling for ID:', downloadId);
             const batchProgress = document.getElementById('batchProgress');
-            batchProgress.classList.add('show');
+            batchProgress.classList.remove('d-none');
             
             const maxAttempts = 300; // 5 minutes max for batch downloads
             let attempts = 0;
@@ -1046,13 +946,15 @@ https://www.facebook.com/watch/?v=456789123"
             
             const progressFill = document.getElementById('batchProgressFill');
             progressFill.style.width = overallProgress + '%';
+            progressFill.setAttribute('aria-valuenow', overallProgress);
         }
 
         // Reset batch form
         function resetBatchForm() {
-            document.getElementById('batchDownloadBtn').disabled = false;
-            document.getElementById('batchDownloadBtn').textContent = 'Start Batch Download';
-            document.getElementById('batchProgress').classList.remove('show');
+            const batchBtn = document.getElementById('batchDownloadBtn');
+            batchBtn.disabled = false;
+            batchBtn.innerHTML = '<i class="bi bi-collection-play me-2"></i>Start Batch Download';
+            document.getElementById('batchProgress').classList.add('d-none');
         }
 
         // Poll download status
@@ -1131,21 +1033,45 @@ https://www.facebook.com/watch/?v=456789123"
             poll();
         }
 
-        // Show status message
+        // Show status message with Bootstrap alerts
         function showStatus(message, type) {
             const statusDiv = document.getElementById('statusDiv');
-            const messageDiv = document.getElementById('statusMessage');
             
-            statusDiv.className = `status show ${type}`;
+            // Map types to Bootstrap alert classes
+            const typeMap = {
+                'success': 'alert-success',
+                'error': 'alert-danger',
+                'info': 'alert-info',
+                'warning': 'alert-warning'
+            };
+            
+            const alertClass = typeMap[type] || 'alert-info';
+            const iconMap = {
+                'success': 'bi-check-circle',
+                'error': 'bi-x-circle',
+                'info': 'bi-info-circle',
+                'warning': 'bi-exclamation-triangle'
+            };
+            
+            const icon = iconMap[type] || 'bi-info-circle';
             
             // Handle multi-line messages and URLs
+            let processedMessage = message;
             if (message.includes('\n') || message.includes('http')) {
-                messageDiv.innerHTML = message
+                processedMessage = message
                     .replace(/\n/g, '<br>')
-                    .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: inherit; text-decoration: underline;">$1</a>');
-            } else {
-                messageDiv.textContent = message;
+                    .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="alert-link">$1</a>');
             }
+            
+            statusDiv.className = `alert ${alertClass} status-alert d-flex align-items-start`;
+            statusDiv.innerHTML = `
+                <i class="bi ${icon} me-3 fs-5"></i>
+                <div>${processedMessage}</div>
+            `;
+            
+            // Show with fade-in animation
+            statusDiv.classList.remove('d-none');
+            statusDiv.classList.add('fade-in');
         }
 
         // Show progress bar
@@ -1153,43 +1079,162 @@ https://www.facebook.com/watch/?v=456789123"
             const progressBar = document.getElementById('progressBar');
             const progressFill = document.getElementById('progressFill');
             
-            progressBar.style.display = 'block';
+            progressBar.classList.remove('d-none');
             progressFill.style.width = progress + '%';
+            progressFill.setAttribute('aria-valuenow', progress);
         }
 
         // Reset form
         function resetForm() {
-            document.getElementById('downloadBtn').disabled = false;
-            document.getElementById('downloadBtn').textContent = 'Download Video';
-            document.getElementById('progressBar').style.display = 'none';
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.disabled = false;
+            downloadBtn.innerHTML = '<i class="bi bi-download me-2"></i>Download Video';
+            document.getElementById('progressBar').classList.add('d-none');
         }
 
-        // Load downloads list
+        // Global slider state
+        let downloadsSliderState = {
+            currentIndex: 0,
+            files: [],
+            itemsPerView: 3,
+            maxItems: 5
+        };
+
+        // Load downloads list with card slider
         async function loadDownloads() {
             try {
                 const response = await fetch('/downloads');
                 const data = await response.json();
                 
                 const downloadsList = document.getElementById('downloadsList');
+                const prevBtn = document.getElementById('downloadsSliderPrev');
+                const nextBtn = document.getElementById('downloadsSliderNext');
                 
-                if (data.files.length === 0) {
-                    downloadsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No downloads yet</div>';
-                } else {
-                    downloadsList.innerHTML = data.files.map(file => `
-                        <div class="download-item">
-                            <div>
-                                <div class="file-name">${file.name}</div>
-                                <div class="file-size">${formatFileSize(file.size)}</div>
-                            </div>
-                            <a href="/download-file/${encodeURIComponent(file.name)}" class="download-link" download>
-                                Download
-                            </a>
+                // Get last 5 files (most recent first)
+                const recentFiles = data.files.slice(0, downloadsSliderState.maxItems);
+                downloadsSliderState.files = recentFiles;
+                
+                if (recentFiles.length === 0) {
+                    downloadsList.innerHTML = `
+                        <div class="text-center p-4 text-muted w-100">
+                            <i class="bi bi-inbox fs-1 mb-3 d-block"></i>
+                            <p class="mb-0">No downloads yet</p>
+                            <small>Downloaded videos will appear here</small>
                         </div>
-                    `).join('');
+                    `;
+                    prevBtn.disabled = true;
+                    nextBtn.disabled = true;
+                    return;
                 }
+
+                // Create video cards
+                const videoCards = recentFiles.map(file => {
+                    const fileName = file.name.replace(/\.(mp4|mkv|webm)$/i, '');
+                    const cleanTitle = cleanVideoTitle(fileName);
+                    
+                    return `
+                        <div class="download-card-item">
+                            <div class="video-thumbnail">
+                                <i class="bi bi-play-circle-fill fs-1 text-primary"></i>
+                            </div>
+                            <div class="video-info">
+                                <div class="video-title" title="${fileName}">${cleanTitle}</div>
+                                <div class="video-meta">
+                                    ${formatFileSize(file.size)} • ${formatRelativeTime(file.modified)}
+                                </div>
+                                <a href="/download-file/${encodeURIComponent(file.name)}" 
+                                   class="btn btn-facebook btn-sm w-100" download>
+                                    <i class="bi bi-download me-2"></i>Download
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                downloadsList.style.minWidth = '100%';
+                downloadsList.innerHTML = videoCards;
+                
+                // Update slider controls
+                updateSliderControls();
+                
             } catch (error) {
                 console.error('Failed to load downloads:', error);
+                document.getElementById('downloadsList').innerHTML = `
+                    <div class="text-center p-4 text-danger w-100">
+                        <i class="bi bi-exclamation-triangle fs-1 mb-3 d-block"></i>
+                        <p class="mb-0">Failed to load downloads</p>
+                        <small>Please refresh the page to try again</small>
+                    </div>
+                `;
             }
+        }
+
+        // Clean video title for display
+        function cleanVideoTitle(title) {
+            // Remove view counts, reactions, and account names
+            return title
+                .replace(/^\d+[KMB]?\s*views\s*[·•]\s*\d+[KMB]?\s*reactions\s*[|｜]\s*/gi, '')
+                .replace(/^\d+[KMB]?\s*views\s*[|｜]\s*/gi, '')
+                .replace(/\s*[|｜]\s*[^|｜]*$/g, '')
+                .trim();
+        }
+
+        // Format relative time
+        function formatRelativeTime(timestamp) {
+            const now = Date.now();
+            const fileTime = timestamp * 1000;
+            const diffMs = now - fileTime;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return new Date(fileTime).toLocaleDateString();
+        }
+
+        // Update slider navigation controls
+        function updateSliderControls() {
+            const prevBtn = document.getElementById('downloadsSliderPrev');
+            const nextBtn = document.getElementById('downloadsSliderNext');
+            const totalFiles = downloadsSliderState.files.length;
+            const itemsPerView = downloadsSliderState.itemsPerView;
+
+            // Enable/disable buttons based on current position
+            prevBtn.disabled = downloadsSliderState.currentIndex <= 0;
+            nextBtn.disabled = downloadsSliderState.currentIndex >= totalFiles - itemsPerView;
+
+            // Hide controls if all items fit in view
+            if (totalFiles <= itemsPerView) {
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+            }
+        }
+
+        // Slider navigation functions
+        function slideDownloadsPrev() {
+            if (downloadsSliderState.currentIndex > 0) {
+                downloadsSliderState.currentIndex--;
+                updateSliderPosition();
+            }
+        }
+
+        function slideDownloadsNext() {
+            const maxIndex = downloadsSliderState.files.length - downloadsSliderState.itemsPerView;
+            if (downloadsSliderState.currentIndex < maxIndex) {
+                downloadsSliderState.currentIndex++;
+                updateSliderPosition();
+            }
+        }
+
+        function updateSliderPosition() {
+            const slider = document.getElementById('downloadsSlider');
+            const cardWidth = 296; // 280px + 16px margin
+            const translateX = -downloadsSliderState.currentIndex * cardWidth;
+            slider.style.transform = `translateX(${translateX}px)`;
+            updateSliderControls();
         }
 
         // Format file size
@@ -1201,7 +1246,7 @@ https://www.facebook.com/watch/?v=456789123"
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // Show Facebook preview
+        // Show Facebook preview with Bootstrap styling
         function showFacebookPreview(downloadId, previewData) {
             const preview = document.getElementById('facebookPreview');
             const title = document.getElementById('previewTitle');
@@ -1219,17 +1264,15 @@ https://www.facebook.com/watch/?v=456789123"
             if (previewData.original_description && previewData.final_description === previewData.original_description) {
                 // Using original video description
                 description.textContent = descriptionText;
-                description.style.fontStyle = 'normal';
+                description.className = 'text-muted mb-2';
             } else if (!previewData.final_description || previewData.final_description === 'Uploaded via Facebook Video Downloader') {
                 // Using default description
                 description.textContent = descriptionText + ' (default)';
-                description.style.fontStyle = 'italic';
-                description.style.opacity = '0.7';
+                description.className = 'text-muted mb-2 fst-italic opacity-75';
             } else {
                 // Using user-provided description
                 description.textContent = descriptionText;
-                description.style.fontStyle = 'normal';
-                description.style.opacity = '1';
+                description.className = 'text-muted mb-2';
             }
             
             // Show file size and duration if available
@@ -1244,9 +1287,9 @@ https://www.facebook.com/watch/?v=456789123"
             
             // Show thumbnail if available
             if (previewData.thumbnail_url) {
-                thumbnail.innerHTML = `<img src="${previewData.thumbnail_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+                thumbnail.innerHTML = `<img src="${previewData.thumbnail_url}" class="w-100 h-100 rounded" style="object-fit: cover;">`;
             } else {
-                thumbnail.innerHTML = '🎥 Video';
+                thumbnail.innerHTML = '<i class="bi bi-play-circle fs-1 text-muted"></i>';
             }
             
             // Store data for confirmation
@@ -1255,8 +1298,10 @@ https://www.facebook.com/watch/?v=456789123"
             confirmBtn.dataset.finalTitle = previewData.final_title;
             confirmBtn.dataset.finalDescription = previewData.final_description;
             
-            // Show preview
-            preview.classList.add('show');
+            // Show preview with Bootstrap classes
+            console.log('Showing Facebook preview with data:', previewData);
+            preview.classList.remove('d-none');
+            preview.classList.add('show', 'fade-in');
             
             // Scroll to preview
             preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1264,7 +1309,9 @@ https://www.facebook.com/watch/?v=456789123"
         
         // Hide Facebook preview
         function hideFacebookPreview() {
-            document.getElementById('facebookPreview').classList.remove('show');
+            const preview = document.getElementById('facebookPreview');
+            preview.classList.remove('show', 'fade-in');
+            preview.classList.add('d-none');
         }
         
         // Format duration in seconds to MM:SS format
@@ -1283,7 +1330,7 @@ https://www.facebook.com/watch/?v=456789123"
             // Disable buttons
             confirmBtn.disabled = true;
             cancelBtn.disabled = true;
-            confirmBtn.textContent = '⏳ Uploading...';
+            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Uploading...';
             
             try {
                 const response = await fetch('/confirm-facebook-upload', {
@@ -1314,14 +1361,14 @@ https://www.facebook.com/watch/?v=456789123"
                     // Re-enable buttons
                     confirmBtn.disabled = false;
                     cancelBtn.disabled = false;
-                    confirmBtn.textContent = '✅ Upload to Facebook';
+                    confirmBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Upload to Facebook';
                 }
             } catch (error) {
                 showStatus('Upload error: ' + error.message, 'error');
                 // Re-enable buttons
                 confirmBtn.disabled = false;
                 cancelBtn.disabled = false;
-                confirmBtn.textContent = '✅ Upload to Facebook';
+                confirmBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Upload to Facebook';
             }
         }
         
@@ -1349,6 +1396,10 @@ https://www.facebook.com/watch/?v=456789123"
         // Load downloads on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadDownloads();
+            
+            // Add slider navigation event listeners
+            document.getElementById('downloadsSliderPrev').addEventListener('click', slideDownloadsPrev);
+            document.getElementById('downloadsSliderNext').addEventListener('click', slideDownloadsNext);
         });
     </script>
 </body>
