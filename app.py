@@ -700,6 +700,76 @@ def get_config():
     """Get current configuration"""
     return jsonify(DOWNLOAD_CONFIG)
 
+@app.route('/settings')
+def get_settings():
+    """Get current Facebook settings"""
+    from config import FACEBOOK_CONFIG
+    return jsonify({
+        'access_token': FACEBOOK_CONFIG.get('access_token', ''),
+        'user_id': FACEBOOK_CONFIG.get('user_id', '')
+    })
+
+@app.route('/save-settings', methods=['POST'])
+def save_settings():
+    """Save Facebook settings"""
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token', '').strip()
+        user_id = data.get('user_id', '').strip()
+        
+        if not access_token or not user_id:
+            return jsonify({'success': False, 'error': 'Access token and user ID are required'}), 400
+        
+        # Update the configuration
+        from config import FACEBOOK_CONFIG
+        FACEBOOK_CONFIG['access_token'] = access_token
+        FACEBOOK_CONFIG['user_id'] = user_id
+        
+        # Also set environment variables for this session
+        os.environ['FACEBOOK_ACCESS_TOKEN'] = access_token
+        os.environ['FACEBOOK_USER_ID'] = user_id
+        
+        logger.info(f"Settings updated - User ID: {user_id}, Token: {access_token[:10]}...")
+        
+        return jsonify({'success': True, 'message': 'Settings saved successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error saving settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/test-facebook-connection', methods=['POST'])
+def test_facebook_connection():
+    """Test Facebook API connection"""
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token', '').strip()
+        user_id = data.get('user_id', '').strip()
+        
+        if not access_token or not user_id:
+            return jsonify({'success': False, 'error': 'Access token and user ID are required'}), 400
+        
+        # Test the connection using FacebookUploader
+        from facebook_uploader import FacebookUploader
+        uploader = FacebookUploader(access_token=access_token, user_id=user_id)
+        
+        success, result = uploader.test_connection()
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'user_info': result,
+                'message': 'Connection successful'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result
+            })
+        
+    except Exception as e:
+        logger.error(f"Error testing Facebook connection: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Create downloads directory
     Path(DOWNLOAD_CONFIG['output_dir']).mkdir(exist_ok=True)

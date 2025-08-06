@@ -82,19 +82,68 @@
             border: none;
             background: var(--facebook-blue);
             color: white;
-            font-weight: 600;
+            font-weight: 500;
             transition: all 0.3s ease;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;
+            border-radius: 10px;
         }
 
         .custom-tab:hover {
             background: var(--facebook-blue-hover);
             color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
         }
 
         .custom-tab.active {
             background: white !important;
             color: var(--facebook-blue) !important;
-            border-bottom: 3px solid var(--facebook-blue);
+            border: 2px solid var(--facebook-blue);
+            box-shadow: 0 4px 12px rgba(24, 119, 242, 0.15);
+        }
+
+        .settings-icon {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .settings-icon:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(45deg);
+            color: white;
+        }
+
+        .nav-pills {
+            gap: 0.75rem;
+        }
+
+        .bg-facebook {
+            background: var(--facebook-blue) !important;
+        }
+
+        .btn-facebook {
+            background: var(--facebook-blue);
+            border-color: var(--facebook-blue);
+            color: white;
+        }
+
+        .btn-facebook:hover {
+            background: var(--facebook-blue-hover);
+            border-color: var(--facebook-blue-hover);
+            color: white;
         }
 
         .status-alert {
@@ -295,7 +344,12 @@
     <div class="container-fluid py-3">
         <div class="main-container">
             <!-- App Header -->
-            <div class="app-header">
+            <div class="app-header position-relative">
+                <!-- Settings Icon -->
+                <button type="button" class="settings-icon" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <i class="bi bi-gear fs-5"></i>
+                </button>
+                
                 <h1><i class="bi bi-facebook"></i> Facebook Video Downloader</h1>
                 <p class="mb-0 fs-5">Download and upload videos with smart preview system</p>
             </div>
@@ -1580,6 +1634,213 @@
                 });
             });
         });
+    </script>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-facebook text-white">
+                    <h5 class="modal-title" id="settingsModalLabel">
+                        <i class="bi bi-gear me-2"></i>Settings
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="settingsForm">
+                        <!-- Facebook Access Token -->
+                        <div class="mb-4">
+                            <label for="accessToken" class="form-label">
+                                <i class="bi bi-key me-2"></i>Facebook Access Token
+                            </label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="accessToken" name="accessToken" 
+                                       placeholder="Enter your Facebook access token">
+                                <button type="button" class="btn btn-outline-secondary" id="toggleTokenVisibility">
+                                    <i class="bi bi-eye" id="tokenVisibilityIcon"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Your access token is used to upload videos to Facebook. 
+                                <a href="https://developers.facebook.com/tools/explorer/" target="_blank" class="text-decoration-none">
+                                    Get your token here
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- User ID -->
+                        <div class="mb-4">
+                            <label for="userId" class="form-label">
+                                <i class="bi bi-person me-2"></i>Facebook User/Page ID
+                            </label>
+                            <input type="text" class="form-control" id="userId" name="userId" 
+                                   placeholder="Enter your Facebook User or Page ID">
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                The ID of the Facebook user or page where videos will be uploaded
+                            </div>
+                        </div>
+
+                        <!-- Connection Test -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary" id="testConnectionBtn">
+                                <i class="bi bi-wifi me-2"></i>Test Connection
+                            </button>
+                            <small id="connectionStatus" class="ms-3"></small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-facebook" id="saveSettingsBtn">
+                        <i class="bi bi-check-lg me-2"></i>Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Settings Modal JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load current settings on modal open
+            $('#settingsModal').on('show.bs.modal', function() {
+                loadCurrentSettings();
+            });
+
+            // Toggle token visibility
+            document.getElementById('toggleTokenVisibility').addEventListener('click', function() {
+                const tokenInput = document.getElementById('accessToken');
+                const icon = document.getElementById('tokenVisibilityIcon');
+                
+                if (tokenInput.type === 'password') {
+                    tokenInput.type = 'text';
+                    icon.className = 'bi bi-eye-slash';
+                } else {
+                    tokenInput.type = 'password';
+                    icon.className = 'bi bi-eye';
+                }
+            });
+
+            // Test connection
+            document.getElementById('testConnectionBtn').addEventListener('click', function() {
+                testFacebookConnection();
+            });
+
+            // Save settings
+            document.getElementById('saveSettingsBtn').addEventListener('click', function() {
+                saveSettings();
+            });
+        });
+
+        async function loadCurrentSettings() {
+            try {
+                const response = await fetch('/settings');
+                if (response.ok) {
+                    const settings = await response.json();
+                    document.getElementById('accessToken').value = settings.access_token || '';
+                    document.getElementById('userId').value = settings.user_id || '';
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        async function testFacebookConnection() {
+            const accessToken = document.getElementById('accessToken').value;
+            const userId = document.getElementById('userId').value;
+            
+            if (!accessToken || !userId) {
+                document.getElementById('connectionStatus').innerHTML = 
+                    '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Please enter both access token and user ID</span>';
+                return;
+            }
+
+            const testBtn = document.getElementById('testConnectionBtn');
+            const originalText = testBtn.innerHTML;
+            testBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Testing...';
+            testBtn.disabled = true;
+
+            try {
+                const response = await fetch('/test-facebook-connection', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        access_token: accessToken,
+                        user_id: userId
+                    })
+                });
+
+                const result = await response.json();
+                const statusElement = document.getElementById('connectionStatus');
+
+                if (result.success) {
+                    statusElement.innerHTML = 
+                        `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Connection successful! User: ${result.user_info.name}</span>`;
+                } else {
+                    statusElement.innerHTML = 
+                        `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Connection failed: ${result.error}</span>`;
+                }
+            } catch (error) {
+                document.getElementById('connectionStatus').innerHTML = 
+                    `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Error: ${error.message}</span>`;
+            } finally {
+                testBtn.innerHTML = originalText;
+                testBtn.disabled = false;
+            }
+        }
+
+        async function saveSettings() {
+            const accessToken = document.getElementById('accessToken').value;
+            const userId = document.getElementById('userId').value;
+            
+            if (!accessToken || !userId) {
+                alert('Please enter both access token and user ID');
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveSettingsBtn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            saveBtn.disabled = true;
+
+            try {
+                const response = await fetch('/save-settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        access_token: accessToken,
+                        user_id: userId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show';
+                    alert.innerHTML = `
+                        <i class="bi bi-check-circle me-2"></i>Settings saved successfully!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.querySelector('.modal-body').insertBefore(alert, document.getElementById('settingsForm'));
+                    
+                    // Close modal after 2 seconds
+                    setTimeout(() => {
+                        $('#settingsModal').modal('hide');
+                    }, 2000);
+                } else {
+                    alert('Failed to save settings: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error saving settings: ' + error.message);
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
