@@ -118,6 +118,25 @@
             box-shadow: 0 8px 25px rgba(24, 119, 242, 0.3);
         }
 
+        .btn-outline-facebook {
+            border: 2px solid var(--facebook-blue);
+            color: var(--facebook-blue);
+            background: transparent;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-facebook:hover,
+        .btn-outline-facebook:focus,
+        .btn-outline-facebook.active,
+        .btn-check:checked + .btn-outline-facebook {
+            background: var(--facebook-blue);
+            border-color: var(--facebook-blue);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(24, 119, 242, 0.2);
+        }
+
         .form-floating > label {
             color: var(--facebook-dark-gray);
         }
@@ -602,6 +621,50 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Scheduling Options -->
+                    <div class="card-body border-top">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <h6 class="fw-bold mb-3">
+                                    <i class="bi bi-calendar-event me-2"></i>Publishing Options
+                                </h6>
+                            </div>
+                            <div class="col-12">
+                                <!-- Publishing Type Selection -->
+                                <div class="btn-group w-100" role="group" id="publishingOptions">
+                                    <input type="radio" class="btn-check" name="publishType" id="publishNow" value="now" checked>
+                                    <label class="btn btn-outline-facebook" for="publishNow">
+                                        <i class="bi bi-upload me-2"></i>Publish Now
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="publishType" id="schedulePost" value="scheduled">
+                                    <label class="btn btn-outline-facebook" for="schedulePost">
+                                        <i class="bi bi-clock me-2"></i>Schedule Post
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Schedule DateTime Picker (Hidden by default) -->
+                            <div class="col-12 d-none" id="schedulingControls">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label for="scheduleDate" class="form-label">Date</label>
+                                        <input type="date" class="form-control" id="scheduleDate" min="">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="scheduleTime" class="form-label">Time</label>
+                                        <input type="time" class="form-control" id="scheduleTime">
+                                    </div>
+                                </div>
+                                <div class="form-text mt-2">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Schedule posts must be at least 10 minutes in the future. Times are in your local timezone.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="card-footer bg-light">
                         <div class="row g-2">
                             <div class="col-6">
@@ -1298,6 +1361,9 @@
             confirmBtn.dataset.finalTitle = previewData.final_title;
             confirmBtn.dataset.finalDescription = previewData.final_description;
             
+            // Initialize scheduling controls
+            initializeSchedulingControls();
+            
             // Show preview with Bootstrap classes
             console.log('Showing Facebook preview with data:', previewData);
             preview.classList.remove('d-none');
@@ -1322,10 +1388,101 @@
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
         
+        // Initialize scheduling controls
+        function initializeSchedulingControls() {
+            const publishNow = document.getElementById('publishNow');
+            const schedulePost = document.getElementById('schedulePost');
+            const schedulingControls = document.getElementById('schedulingControls');
+            const scheduleDate = document.getElementById('scheduleDate');
+            const scheduleTime = document.getElementById('scheduleTime');
+            const confirmBtn = document.getElementById('previewConfirmBtn');
+            
+            // Reset to default state
+            publishNow.checked = true;
+            schedulePost.checked = false;
+            schedulingControls.classList.add('d-none');
+            
+            // Set minimum date to today
+            const today = new Date();
+            const todayString = today.toISOString().split('T')[0];
+            scheduleDate.min = todayString;
+            scheduleDate.value = todayString;
+            
+            // Set default time to 1 hour from now
+            const oneHourLater = new Date(today.getTime() + 60 * 60 * 1000);
+            const timeString = oneHourLater.toTimeString().slice(0, 5);
+            scheduleTime.value = timeString;
+            
+            // Update button text based on selection
+            updateConfirmButtonText();
+        }
+        
+        // Update confirm button text based on publishing option
+        function updateConfirmButtonText() {
+            const confirmBtn = document.getElementById('previewConfirmBtn');
+            const publishNow = document.getElementById('publishNow');
+            
+            if (publishNow.checked) {
+                confirmBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Upload to Facebook';
+            } else {
+                confirmBtn.innerHTML = '<i class="bi bi-calendar-plus me-2"></i>Schedule Post';
+            }
+        }
+        
+        // Get scheduling data
+        function getSchedulingData() {
+            const publishType = document.querySelector('input[name="publishType"]:checked').value;
+            
+            if (publishType === 'scheduled') {
+                const scheduleDate = document.getElementById('scheduleDate').value;
+                const scheduleTime = document.getElementById('scheduleTime').value;
+                
+                if (!scheduleDate || !scheduleTime) {
+                    return { error: 'Please select both date and time for scheduled post' };
+                }
+                
+                // Create scheduled datetime
+                const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+                const now = new Date();
+                const tenMinutesFromNow = new Date(now.getTime() + 10 * 60 * 1000);
+                
+                if (scheduledDateTime <= tenMinutesFromNow) {
+                    return { error: 'Scheduled posts must be at least 10 minutes in the future' };
+                }
+                
+                return {
+                    publishType: 'scheduled',
+                    scheduledTime: Math.floor(scheduledDateTime.getTime() / 1000) // Unix timestamp
+                };
+            }
+            
+            return { publishType: 'now' };
+        }
+        
+        // Validate scheduling input
+        function validateScheduling() {
+            const schedulingData = getSchedulingData();
+            
+            if (schedulingData.error) {
+                showStatus(schedulingData.error, 'error');
+                return false;
+            }
+            
+            return true;
+        }
+        
         // Handle Facebook upload confirmation
         async function confirmFacebookUpload(downloadId, videoPath, finalTitle, finalDescription) {
             const confirmBtn = document.getElementById('previewConfirmBtn');
             const cancelBtn = document.getElementById('previewCancelBtn');
+            
+            // Validate scheduling before proceeding
+            if (!validateScheduling()) {
+                return;
+            }
+            
+            // Get scheduling data
+            const schedulingData = getSchedulingData();
             
             // Disable buttons
             confirmBtn.disabled = true;
@@ -1342,15 +1499,23 @@
                         download_id: downloadId,
                         video_path: videoPath,
                         final_title: finalTitle,
-                        final_description: finalDescription
+                        final_description: finalDescription,
+                        scheduling: schedulingData
                     })
                 });
                 
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
-                    let successMessage = '🎉 Video successfully uploaded to Facebook!';
-                    if (data.result && data.result.facebook_url) {
+                    let successMessage = schedulingData.publishType === 'scheduled' 
+                        ? '📅 Video successfully scheduled for Facebook!' 
+                        : '🎉 Video successfully uploaded to Facebook!';
+                    
+                    if (schedulingData.publishType === 'scheduled') {
+                        const scheduledDate = new Date(schedulingData.scheduledTime * 1000);
+                        successMessage += `\n⏰ Will be published on: ${scheduledDate.toLocaleDateString()} at ${scheduledDate.toLocaleTimeString()}`;
+                        successMessage += `\n📱 You can manage scheduled posts in Facebook Creator Studio`;
+                    } else if (data.result && data.result.facebook_url) {
                         successMessage += `\n📺 View your video: ${data.result.facebook_url}`;
                     }
                     showStatus(successMessage, 'success');
@@ -1400,6 +1565,20 @@
             // Add slider navigation event listeners
             document.getElementById('downloadsSliderPrev').addEventListener('click', slideDownloadsPrev);
             document.getElementById('downloadsSliderNext').addEventListener('click', slideDownloadsNext);
+            
+            // Add scheduling controls event listeners
+            const publishingOptions = document.querySelectorAll('input[name="publishType"]');
+            publishingOptions.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const schedulingControls = document.getElementById('schedulingControls');
+                    if (this.value === 'scheduled') {
+                        schedulingControls.classList.remove('d-none');
+                    } else {
+                        schedulingControls.classList.add('d-none');
+                    }
+                    updateConfirmButtonText();
+                });
+            });
         });
     </script>
 </body>

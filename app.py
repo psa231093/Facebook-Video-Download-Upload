@@ -615,25 +615,32 @@ def confirm_facebook_upload():
         video_path = data.get('video_path', '')
         final_title = data.get('final_title', '')
         final_description = data.get('final_description', '')
+        scheduling = data.get('scheduling', {})
         
         if not download_id or not video_path:
             return jsonify({'error': 'Download ID and video path are required'}), 400
         
-        # Update download status
+        # Update download status with proper message based on scheduling
+        is_scheduled = scheduling.get('publishType') == 'scheduled'
         if download_id in download_status:
-            download_status[download_id]['message'] = 'Uploading to Facebook...'
+            status_message = 'Scheduling Facebook post...' if is_scheduled else 'Uploading to Facebook...'
+            download_status[download_id]['message'] = status_message
             download_status[download_id]['facebook_status'] = 'uploading'
         
         # Create downloader instance
         from facebook_downloader import FacebookDownloader
         downloader = FacebookDownloader()
         
+        # Extract scheduled time if provided
+        scheduled_time = scheduling.get('scheduledTime') if is_scheduled else None
+        
         # Perform actual upload
         upload_success, upload_result = downloader.post_download_actions(
             video_path=video_path,
             video_title=final_title,
             video_description=final_description,
-            auto_upload=True
+            auto_upload=True,
+            scheduled_publish_time=scheduled_time
         )
         
         # Update download status with results
@@ -644,7 +651,8 @@ def confirm_facebook_upload():
             }
             if upload_success:
                 download_status[download_id]['facebook_status'] = 'completed'
-                download_status[download_id]['message'] = 'Facebook upload completed!'
+                success_message = 'Facebook post scheduled successfully!' if is_scheduled else 'Facebook upload completed!'
+                download_status[download_id]['message'] = success_message
             else:
                 download_status[download_id]['facebook_status'] = 'failed'
                 download_status[download_id]['message'] = f'Facebook upload failed: {upload_result}'

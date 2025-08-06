@@ -15,8 +15,8 @@ class FacebookUploader:
         self.user_id = user_id
         self.graph_api_url = "https://graph.facebook.com/v18.0"
         
-    def upload_video(self, video_path, title="", description=""):
-        """Upload a video to Facebook profile"""
+    def upload_video(self, video_path, title="", description="", scheduled_publish_time=None):
+        """Upload a video to Facebook profile with optional scheduling"""
         print(f"\n📤 FACEBOOK VIDEO UPLOAD STARTED")
         print(f"📝 Parameters:")
         print(f"   - Video path: {video_path}")
@@ -27,10 +27,12 @@ class FacebookUploader:
             print("   - Title: (contains Unicode characters)")
             print("   - Description: (contains Unicode characters)")
         print(f"   - User ID: {self.user_id}")
+        print(f"   - Scheduled publish time: {scheduled_publish_time}")
         print(f"[DEBUG] Title length: {len(title)}")
         print(f"[DEBUG] Description length: {len(description)}")
         print(f"[DEBUG] Title empty: {not bool(title.strip() if title else True)}")
         print(f"[DEBUG] Description empty: {not bool(description.strip() if description else True)}")
+        print(f"[DEBUG] Is scheduled: {scheduled_publish_time is not None}")
         
         video_file = Path(video_path)
         if not video_file.exists():
@@ -66,27 +68,41 @@ class FacebookUploader:
             
             # Step 3: Publish video with title and description
             print(f"🚀 Step 3: Publishing video...")
-            publish_response = self._publish_video(upload_session_id, title, description)
+            publish_response = self._publish_video(upload_session_id, title, description, scheduled_publish_time)
             
             if not publish_response:
                 return False, "Failed to publish video"
             
-            print(f"✅ Video published successfully!")
+            if scheduled_publish_time:
+                print(f"✅ Video scheduled successfully!")
+                print(f"📅 Video will be published at scheduled time")
+            else:
+                print(f"✅ Video published successfully!")
+                
             print(f"📋 Video details:")
             print(f"   - Video ID: {video_id}")
             print(f"   - Title: {title}")
             
-            # Construct Facebook video URL
-            facebook_url = f"https://www.facebook.com/{self.user_id}/videos/{video_id}"
-            print(f"   - Facebook URL: {facebook_url}")
-            
-            return True, {
+            result = {
                 'video_id': video_id,
                 'title': title,
                 'description': description,
                 'upload_session_id': upload_session_id,
-                'facebook_url': facebook_url
+                'scheduled': scheduled_publish_time is not None
             }
+            
+            # Only add Facebook URL for immediate posts
+            if not scheduled_publish_time:
+                facebook_url = f"https://www.facebook.com/{self.user_id}/videos/{video_id}"
+                print(f"   - Facebook URL: {facebook_url}")
+                result['facebook_url'] = facebook_url
+            else:
+                from datetime import datetime
+                scheduled_date = datetime.fromtimestamp(scheduled_publish_time)
+                print(f"   - Scheduled for: {scheduled_date.strftime('%Y-%m-%d at %H:%M')}")
+                result['scheduled_time'] = scheduled_publish_time
+            
+            return True, result
             
         except Exception as e:
             print(f"💥 Exception during Facebook upload: {e}")
@@ -173,7 +189,7 @@ class FacebookUploader:
             print(f"💥 Exception in upload_video_file: {e}")
             return False
     
-    def _publish_video(self, upload_session_id, title, description=""):
+    def _publish_video(self, upload_session_id, title, description="", scheduled_publish_time=None):
         """Publish the uploaded video with title and description"""
         url = f"{self.graph_api_url}/{self.user_id}/videos"
         
@@ -194,6 +210,20 @@ class FacebookUploader:
             print(f"[DEBUG] Added description to data: '{description[:50]}...' (length: {len(description)})")
         else:
             print(f"[DEBUG] No description provided - description is empty or None")
+            
+        # Add scheduling if provided
+        if scheduled_publish_time:
+            # For scheduled posts, set published=false and scheduled_publish_time
+            data['published'] = False
+            data['scheduled_publish_time'] = scheduled_publish_time
+            print(f"[DEBUG] Creating unpublished post with scheduled_publish_time: {scheduled_publish_time}")
+            from datetime import datetime
+            scheduled_date = datetime.fromtimestamp(scheduled_publish_time)
+            print(f"[DEBUG] Scheduled for: {scheduled_date.strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            # For immediate posts, set published=true (default behavior)
+            data['published'] = True
+            print(f"[DEBUG] Publishing immediately")
         
         try:
             print(f"🚀 Publishing video with data: {data}")

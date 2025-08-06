@@ -618,7 +618,7 @@ class FacebookDownloader:
         except Exception as e:
             return False, f"Error generating preview: {str(e)}"
     
-    def post_download_actions(self, video_path, video_title="", video_description="", auto_upload=None):
+    def post_download_actions(self, video_path, video_title="", video_description="", auto_upload=None, scheduled_publish_time=None):
         """Handle actions after a video is downloaded"""
         print(f"\n🎬 POST-DOWNLOAD ACTIONS")
         print(f"📝 Video: {video_path}")
@@ -677,7 +677,8 @@ class FacebookDownloader:
             success, result = uploader.upload_video(
                 video_path=video_path,
                 title=title,
-                description=description
+                description=description,
+                scheduled_publish_time=scheduled_publish_time
             )
             
             if success:
