@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Video Downloader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="url"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .download-mode {
+            display: flex;
+            margin-bottom: 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .mode-tab {
+            flex: 1;
+            padding: 15px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .mode-tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .mode-tab:hover:not(.active) {
+            background: #e9ecef;
+        }
+
+        .download-section {
+            display: none;
+        }
+
+        .download-section.active {
+            display: block;
+        }
+
+        .batch-options {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .batch-progress {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .batch-progress.show {
+            display: block;
+        }
+
+        .batch-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .current-video {
+            font-weight: 500;
+            color: #333;
+            margin-top: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .cookies-section {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .cookies-section.show {
+            display: block;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e1e5e9;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .downloads-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e1e5e9;
+        }
+
+        .downloads-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+        }
+
+        .download-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .download-item:last-child {
+            border-bottom: none;
+        }
+
+        .download-item:hover {
+            background: #f8f9fa;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .download-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+
+        .download-link:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .facebook-preview {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .facebook-preview.show {
+            display: block;
+        }
+
+        .facebook-preview-header {
+            background: #f5f6f7;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+        }
+
+        .facebook-preview-header h3 {
+            margin: 0;
+            color: #1877f2;
+            font-size: 1.2em;
+        }
+
+        .facebook-preview-content {
+            padding: 20px;
+        }
+
+        .preview-video-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .preview-thumbnail {
+            width: 120px;
+            height: 68px;
+            background: #f0f2f5;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #65676b;
+            font-size: 0.9em;
+            flex-shrink: 0;
+        }
+
+        .preview-video-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .preview-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #1c1e21;
+            margin: 0 0 8px 0;
+            line-height: 1.3;
+            word-wrap: break-word;
+        }
+
+        .preview-description {
+            color: #65676b;
+            font-size: 0.95em;
+            line-height: 1.4;
+            margin: 8px 0 0 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .preview-meta {
+            font-size: 0.85em;
+            color: #8a8d91;
+            margin-top: 10px;
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px;
+            background: #f5f6f7;
+            border-top: 1px solid #ddd;
+        }
+
+        .preview-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.95em;
+        }
+
+        .preview-btn.confirm {
+            background: #1877f2;
+            color: white;
+        }
+
+        .preview-btn.confirm:hover {
+            background: #166fe5;
+        }
+
+        .preview-btn.cancel {
+            background: #e4e6ea;
+            color: #1c1e21;
+        }
+
+        .preview-btn.cancel:hover {
+            background: #d8dadf;
+        }
+
+        .preview-btn:disabled {
+            background: #bcc0c4;
+            color: #8a8d91;
+            cursor: not-allowed;
+        }
+
+        .preview-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #65676b;
+        }
+
+        .preview-loading .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1877f2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎥 Facebook Video Downloader</h1>
+            <p>Download videos from Facebook easily and securely</p>
+        </div>
+
+        <!-- Download Mode Selector -->
+        <div class="download-mode">
+            <button type="button" class="mode-tab active" id="singleModeTab">Single Video</button>
+            <button type="button" class="mode-tab" id="batchModeTab">Batch Download</button>
+        </div>
+
+        <!-- Single Video Download -->
+        <div class="download-section active" id="singleDownloadSection">
+            <form id="downloadForm">
+            <div class="form-group">
+                <label for="videoUrl">Facebook Video URL:</label>
+                <input 
+                    type="url" 
+                    id="videoUrl" 
+                    name="videoUrl" 
+                    placeholder="https://www.facebook.com/watch/?v=123456789"
+                    required
+                >
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="useCookies" name="useCookies">
+                <label for="useCookies">Use authentication (for private videos)</label>
+            </div>
+
+            <div class="cookies-section" id="cookiesSection">
+                <label for="cookiesContent">Paste your cookies.txt content here:</label>
+                <textarea 
+                    id="cookiesContent" 
+                    name="cookiesContent" 
+                    placeholder="# Netscape HTTP Cookie File
+.facebook.com	TRUE	/	FALSE	1234567890	cookie_name	cookie_value"
+                ></textarea>
+                <div class="warning">
+                    <strong>Privacy Note:</strong> Your cookies are only used for this download and are not stored on the server.
+                </div>
+            </div>
+
+            <!-- Facebook Upload Settings for Single Video -->
+            <div class="batch-options">
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4caf50;">
+                    <h4 style="margin: 0 0 10px 0; color: #2e7d32;">🚀 Facebook Auto-Upload</h4>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="singleAutoUploadEnabled" name="singleAutoUploadEnabled">
+                        <label for="singleAutoUploadEnabled">Automatically upload downloaded video to Facebook</label>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label for="singleVideoTitlePrefix">Video title prefix (optional):</label>
+                        <input 
+                            type="text" 
+                            id="singleVideoTitlePrefix" 
+                            name="singleVideoTitlePrefix" 
+                            placeholder="e.g., '[Downloaded] '"
+                            style="padding: 10px; border: 2px solid #e1e5e9; border-radius: 5px; width: 100%;"
+                        >
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 10px;">
+                        <label for="singleVideoDescription">Video description:</label>
+                        <textarea 
+                            id="singleVideoDescription" 
+                            name="singleVideoDescription" 
+                            placeholder="Uploaded via Facebook Video Downloader"
+                            rows="2"
+                            style="padding: 10px; border: 2px solid #e1e5e9; border-radius: 5px; width: 100%; resize: vertical;"
+                        ></textarea>
+                    </div>
+                    
+                    <div class="warning" style="margin-top: 10px; background: #fff3cd; color: #856404;">
+                        <strong>Note:</strong> Make sure you've added your Facebook access token to the configuration file (.env or config.py).
+                    </div>
+                </div>
+            </div>
+
+                <button type="submit" class="btn" id="downloadBtn">
+                    Download Video
+                </button>
+            </form>
+        </div>
+
+        <!-- Batch Download -->
+        <div class="download-section" id="batchDownloadSection">
+            <div class="warning" style="margin-bottom: 20px;">
+                <strong>Note:</strong> Facebook page URLs are not supported by yt-dlp. Please paste individual video URLs below.
+            </div>
+            
+            <form id="batchDownloadForm">
+                <div class="form-group">
+                    <label for="videoUrls">Facebook Video URLs (one per line):</label>
+                    <textarea 
+                        id="videoUrls" 
+                        name="videoUrls" 
+                        placeholder="https://www.facebook.com/watch/?v=123456789
+https://www.facebook.com/watch/?v=987654321
+https://www.facebook.com/watch/?v=456789123"
+                        required
+                        rows="6"
+                        style="font-family: monospace; font-size: 14px;"
+                    ></textarea>
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        Enter Facebook video URLs, one per line. Max 20 videos per batch.
+                    </small>
+                </div>
+
+                <div class="batch-options">
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 10px 0; color: #1976d2;">💡 How to get Facebook video URLs:</h4>
+                        <ol style="margin: 0; padding-left: 20px; color: #666;">
+                            <li>Go to the Facebook page/profile</li>
+                            <li>Click on each video you want to download</li>
+                            <li>Copy the URL from your browser's address bar</li>
+                            <li>Paste each URL on a new line above</li>
+                        </ol>
+                        <p style="margin: 10px 0 0 0; color: #666; font-size: 0.9em;">
+                            <strong>Tip:</strong> Video URLs usually look like: <code>https://www.facebook.com/watch/?v=123456789</code>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Facebook Upload Settings -->
+                <div class="batch-options">
+                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4caf50;">
+                        <h4 style="margin: 0 0 10px 0; color: #2e7d32;">🚀 Facebook Auto-Upload</h4>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="autoUploadEnabled" name="autoUploadEnabled">
+                            <label for="autoUploadEnabled">Automatically upload downloaded videos to Facebook</label>
+                        </div>
+                        
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label for="videoTitlePrefix">Video title prefix (optional):</label>
+                            <input 
+                                type="text" 
+                                id="videoTitlePrefix" 
+                                name="videoTitlePrefix" 
+                                placeholder="e.g., '[Downloaded] '"
+                                style="padding: 10px; border: 2px solid #e1e5e9; border-radius: 5px; width: 100%;"
+                            >
+                        </div>
+                        
+                        <div class="form-group" style="margin-top: 10px;">
+                            <label for="videoDescription">Video description:</label>
+                            <textarea 
+                                id="videoDescription" 
+                                name="videoDescription" 
+                                placeholder="Uploaded via Facebook Video Downloader"
+                                rows="2"
+                                style="padding: 10px; border: 2px solid #e1e5e9; border-radius: 5px; width: 100%; resize: vertical;"
+                            ></textarea>
+                        </div>
+                        
+                        <div class="warning" style="margin-top: 10px; background: #fff3cd; color: #856404;">
+                            <strong>Note:</strong> Make sure you've added your Facebook access token to the configuration file (.env or config.py).
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="batchUseCookies" name="batchUseCookies">
+                    <label for="batchUseCookies">Use authentication (for private videos)</label>
+                </div>
+
+                <div class="cookies-section" id="batchCookiesSection">
+                    <label for="batchCookiesContent">Paste your cookies.txt content here:</label>
+                    <textarea 
+                        id="batchCookiesContent" 
+                        name="batchCookiesContent" 
+                        placeholder="# Netscape HTTP Cookie File
+.facebook.com	TRUE	/	FALSE	1234567890	cookie_name	cookie_value"
+                    ></textarea>
+                    <div class="warning">
+                        <strong>Privacy Note:</strong> Your cookies are only used for this download and are not stored on the server.
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" id="batchDownloadBtn">
+                    Start Batch Download
+                </button>
+            </form>
+
+            <!-- Batch Progress -->
+            <div class="batch-progress" id="batchProgress">
+                <h4>Batch Download Progress</h4>
+                <div class="batch-stats" id="batchStats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalVideos">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="completedVideos">0</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="failedVideos">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                </div>
+                <div class="current-video" id="currentVideo">
+                    Initializing...
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="batchProgressFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status" id="statusDiv">
+            <div id="statusMessage"></div>
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Facebook Preview Component -->
+        <div class="facebook-preview" id="facebookPreview">
+            <div class="facebook-preview-header">
+                <h3>📺 Facebook Upload Preview</h3>
+            </div>
+            <div class="facebook-preview-content">
+                <div class="preview-video-info">
+                    <div class="preview-thumbnail" id="previewThumbnail">
+                        🎥 Video
+                    </div>
+                    <div class="preview-video-details">
+                        <div class="preview-title" id="previewTitle">
+                            Video Title
+                        </div>
+                        <div class="preview-description" id="previewDescription">
+                            Video description...
+                        </div>
+                        <div class="preview-meta" id="previewMeta">
+                            Ready to upload
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="preview-actions">
+                <button class="preview-btn cancel" id="previewCancelBtn">
+                    ❌ Cancel Upload
+                </button>
+                <button class="preview-btn confirm" id="previewConfirmBtn">
+                    ✅ Upload to Facebook
+                </button>
+            </div>
+        </div>
+
+        <div class="downloads-section">
+            <h3>Downloaded Files</h3>
+            <div class="downloads-list" id="downloadsList">
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    Loading downloads...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mode switching
+        document.getElementById('singleModeTab').addEventListener('click', function() {
+            switchMode('single');
+        });
+
+        document.getElementById('batchModeTab').addEventListener('click', function() {
+            switchMode('batch');
+        });
+
+        function switchMode(mode) {
+            // Update tabs
+            document.querySelectorAll('.mode-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.download-section').forEach(section => section.classList.remove('active'));
+            
+            if (mode === 'single') {
+                document.getElementById('singleModeTab').classList.add('active');
+                document.getElementById('singleDownloadSection').classList.add('active');
+            } else {
+                document.getElementById('batchModeTab').classList.add('active');
+                document.getElementById('batchDownloadSection').classList.add('active');
+            }
+        }
+
+        // Toggle cookies section for single download
+        document.getElementById('useCookies').addEventListener('change', function() {
+            const cookiesSection = document.getElementById('cookiesSection');
+            if (this.checked) {
+                cookiesSection.classList.add('show');
+            } else {
+                cookiesSection.classList.remove('show');
+            }
+        });
+
+        // Toggle cookies section for batch download
+        document.getElementById('batchUseCookies').addEventListener('change', function() {
+            const cookiesSection = document.getElementById('batchCookiesSection');
+            if (this.checked) {
+                cookiesSection.classList.add('show');
+            } else {
+                cookiesSection.classList.remove('show');
+            }
+        });
+
+        // Handle single video form submission
+        document.getElementById('downloadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const url = document.getElementById('videoUrl').value.trim();
+            const useCookies = document.getElementById('useCookies').checked;
+            const cookiesContent = document.getElementById('cookiesContent').value.trim();
+            
+            // Facebook upload settings
+            const autoUploadEnabled = document.getElementById('singleAutoUploadEnabled').checked;
+            const videoTitlePrefix = document.getElementById('singleVideoTitlePrefix').value.trim();
+            const videoDescription = document.getElementById('singleVideoDescription').value.trim();
+            
+            if (!url) {
+                showStatus('Please enter a video URL', 'error');
+                return;
+            }
+
+            if (useCookies && !cookiesContent) {
+                showStatus('Please provide cookies content for authentication', 'error');
+                return;
+            }
+
+            // Disable form
+            document.getElementById('downloadBtn').disabled = true;
+            document.getElementById('downloadBtn').textContent = 'Starting Download...';
+            
+            try {
+                const response = await fetch('/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        use_cookies: useCookies,
+                        cookies_content: cookiesContent,
+                        facebook_upload: {
+                            enabled: autoUploadEnabled,
+                            title_prefix: videoTitlePrefix,
+                            description: videoDescription
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Start polling for status
+                    pollDownloadStatus(data.download_id);
+                } else {
+                    showStatus(data.error || 'Download failed', 'error');
+                    resetForm();
+                }
+            } catch (error) {
+                showStatus('Network error: ' + error.message, 'error');
+                resetForm();
+            }
+        });
+
+        // Handle batch download form submission
+        document.getElementById('batchDownloadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            console.log('🎬 BATCH DOWNLOAD FORM SUBMITTED');
+            
+            const videoUrlsText = document.getElementById('videoUrls').value.trim();
+            const useCookies = document.getElementById('batchUseCookies').checked;
+            const cookiesContent = document.getElementById('batchCookiesContent').value.trim();
+            
+            // Facebook upload settings
+            const autoUploadEnabled = document.getElementById('autoUploadEnabled').checked;
+            const videoTitlePrefix = document.getElementById('videoTitlePrefix').value.trim();
+            const videoDescription = document.getElementById('videoDescription').value.trim();
+            
+            // Parse video URLs (one per line)
+            const videoUrls = videoUrlsText.split('\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0);
+            
+            console.log('📝 Form data:', {
+                videoUrlsCount: videoUrls.length,
+                videoUrls: videoUrls,
+                useCookies: useCookies,
+                cookiesLength: cookiesContent.length,
+                autoUploadEnabled: autoUploadEnabled,
+                videoTitlePrefix: videoTitlePrefix,
+                videoDescription: videoDescription
+            });
+            
+            if (videoUrls.length === 0) {
+                console.error('❌ No video URLs provided');
+                showStatus('Please enter at least one Facebook video URL', 'error');
+                return;
+            }
+            
+            if (videoUrls.length > 20) {
+                console.error('❌ Too many URLs provided');
+                showStatus('Maximum 20 videos per batch. Please reduce the number of URLs.', 'error');
+                return;
+            }
+            
+            // Validate URLs
+            const invalidUrls = videoUrls.filter(url => 
+                !url.includes('facebook.com') || 
+                (!url.includes('/watch/') && !url.includes('/videos/'))
+            );
+            
+            if (invalidUrls.length > 0) {
+                console.error('❌ Invalid Facebook URLs:', invalidUrls);
+                showStatus('Please ensure all URLs are valid Facebook video URLs', 'error');
+                return;
+            }
+
+            if (useCookies && !cookiesContent) {
+                console.error('❌ Cookies required but not provided');
+                showStatus('Please provide cookies content for authentication', 'error');
+                return;
+            }
+
+            console.log('✅ Form validation passed');
+
+            // Disable form
+            document.getElementById('batchDownloadBtn').disabled = true;
+            document.getElementById('batchDownloadBtn').textContent = 'Starting Batch Download...';
+            
+            try {
+                const requestData = {
+                    video_urls: videoUrls,
+                    use_cookies: useCookies,
+                    cookies_content: cookiesContent,
+                    facebook_upload: {
+                        enabled: autoUploadEnabled,
+                        title_prefix: videoTitlePrefix,
+                        description: videoDescription
+                    }
+                };
+                
+                console.log('📤 Preparing request data:', {
+                    video_urls_count: requestData.video_urls.length,
+                    use_cookies: requestData.use_cookies,
+                    cookies_length: requestData.cookies_content.length,
+                    facebook_upload: requestData.facebook_upload
+                });
+                
+                console.log('🚀 Sending batch download request...');
+                const response = await fetch('/batch-download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('📥 Response received:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok
+                });
+
+                const data = await response.json();
+                console.log('📋 Response data:', data);
+                
+                if (response.ok) {
+                    console.log('✅ Request successful, starting polling for download ID:', data.download_id);
+                    // Start polling for batch status
+                    pollBatchDownloadStatus(data.download_id);
+                } else {
+                    console.error('❌ Request failed:', data);
+                    showStatus(data.error || 'Batch download failed', 'error');
+                    resetBatchForm();
+                }
+            } catch (error) {
+                console.error('💥 Network error:', error);
+                showStatus('Network error: ' + error.message, 'error');
+                resetBatchForm();
+            }
+        });
+
+        // Poll batch download status
+        async function pollBatchDownloadStatus(downloadId) {
+            console.log('📊 Starting batch download polling for ID:', downloadId);
+            const batchProgress = document.getElementById('batchProgress');
+            batchProgress.classList.add('show');
+            
+            const maxAttempts = 300; // 5 minutes max for batch downloads
+            let attempts = 0;
+            
+            const poll = async () => {
+                attempts++;
+                console.log(`🔄 Polling attempt ${attempts}/${maxAttempts} for download ID: ${downloadId}`);
+                
+                if (attempts >= maxAttempts) {
+                    console.error('⏰ Batch download polling timed out');
+                    showStatus('Batch download timeout', 'error');
+                    resetBatchForm();
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/status/${downloadId}`);
+                    const status = await response.json();
+                    
+                    console.log(`📋 Status response (attempt ${attempts}):`, {
+                        status: status.status,
+                        message: status.message,
+                        progress: status.progress,
+                        batch_info: status.batch_info
+                    });
+                    
+                    // Update batch progress UI
+                    if (status.batch_info) {
+                        console.log('📊 Updating batch progress UI with:', status.batch_info);
+                        updateBatchProgress(status.batch_info, status.progress);
+                    }
+                    
+                    showStatus(status.message, status.status === 'error' ? 'error' : 'info');
+                    
+                    if (status.status === 'completed') {
+                        console.log('✅ Batch download completed successfully!');
+                        showStatus('Batch download completed!', 'success');
+                        resetBatchForm();
+                        loadDownloads(); // Refresh downloads list
+                    } else if (status.status === 'error') {
+                        console.error('❌ Batch download failed with error status');
+                        resetBatchForm();
+                    } else {
+                        console.log('🔄 Download still in progress, scheduling next poll in 2 seconds');
+                        setTimeout(poll, 2000); // Poll every 2 seconds for batch
+                    }
+                } catch (error) {
+                    console.error('💥 Status check failed:', error);
+                    showStatus('Status check failed: ' + error.message, 'error');
+                    resetBatchForm();
+                }
+            };
+            
+            poll();
+        }
+
+        // Update batch progress UI
+        function updateBatchProgress(batchInfo, overallProgress) {
+            document.getElementById('totalVideos').textContent = batchInfo.total_videos;
+            document.getElementById('completedVideos').textContent = batchInfo.completed;
+            document.getElementById('failedVideos').textContent = batchInfo.failed;
+            document.getElementById('currentVideo').textContent = batchInfo.current_video || 'Processing...';
+            
+            const progressFill = document.getElementById('batchProgressFill');
+            progressFill.style.width = overallProgress + '%';
+        }
+
+        // Reset batch form
+        function resetBatchForm() {
+            document.getElementById('batchDownloadBtn').disabled = false;
+            document.getElementById('batchDownloadBtn').textContent = 'Start Batch Download';
+            document.getElementById('batchProgress').classList.remove('show');
+        }
+
+        // Poll download status
+        async function pollDownloadStatus(downloadId) {
+            const maxAttempts = 120; // 2 minutes max
+            let attempts = 0;
+            
+            const poll = async () => {
+                if (attempts >= maxAttempts) {
+                    showStatus('Download timeout', 'error');
+                    resetForm();
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/status/${downloadId}`);
+                    const status = await response.json();
+                    
+                    // Show appropriate status based on Facebook upload state
+                    let statusType = 'info';
+                    if (status.status === 'error') {
+                        statusType = 'error';
+                    } else if (status.facebook_status === 'preview_ready') {
+                        statusType = 'success';
+                    } else if (status.facebook_status === 'uploading') {
+                        statusType = 'info';
+                    } else if (status.facebook_status === 'completed') {
+                        statusType = 'success';
+                    } else if (status.facebook_status === 'failed') {
+                        statusType = 'error';
+                    }
+                    
+                    showStatus(status.message, statusType);
+                    
+                    if (status.progress > 0) {
+                        showProgress(status.progress);
+                    }
+                    
+                    if (status.status === 'completed') {
+                        // Check if Facebook preview is ready
+                        if (status.facebook_upload && status.facebook_upload.preview_ready && status.facebook_upload.preview) {
+                            showStatus('Download completed - Review your Facebook upload preview below', 'success');
+                            showFacebookPreview(downloadId, status.facebook_upload.preview);
+                            resetForm();
+                        } else if (status.facebook_upload && status.facebook_upload.success && status.facebook_upload.result && status.facebook_upload.result.facebook_url) {
+                            // Direct upload was successful
+                            let statusMessage = status.message || 'Download completed successfully!';
+                            statusMessage += `\n\n🎉 Video successfully uploaded to Facebook!\n📺 View your video: ${status.facebook_upload.result.facebook_url}`;
+                            showStatus(statusMessage, 'success');
+                            resetForm();
+                            loadDownloads(); // Refresh downloads list
+                        } else {
+                            // Regular download completion or Facebook upload failed
+                            let statusMessage = status.message || 'Download completed successfully!';
+                            
+                            if (status.facebook_upload && !status.facebook_upload.success) {
+                                statusMessage += `\n\n⚠️ Facebook upload failed: ${status.facebook_upload.result || status.facebook_upload.error}`;
+                            }
+                            
+                            showStatus(statusMessage, 'success');
+                            resetForm();
+                            loadDownloads(); // Refresh downloads list
+                        }
+                    } else if (status.status === 'error') {
+                        resetForm();
+                    } else {
+                        attempts++;
+                        setTimeout(poll, 1000); // Poll every second
+                    }
+                } catch (error) {
+                    showStatus('Status check failed: ' + error.message, 'error');
+                    resetForm();
+                }
+            };
+            
+            poll();
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusDiv');
+            const messageDiv = document.getElementById('statusMessage');
+            
+            statusDiv.className = `status show ${type}`;
+            
+            // Handle multi-line messages and URLs
+            if (message.includes('\n') || message.includes('http')) {
+                messageDiv.innerHTML = message
+                    .replace(/\n/g, '<br>')
+                    .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: inherit; text-decoration: underline;">$1</a>');
+            } else {
+                messageDiv.textContent = message;
+            }
+        }
+
+        // Show progress bar
+        function showProgress(progress) {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            progressBar.style.display = 'block';
+            progressFill.style.width = progress + '%';
+        }
+
+        // Reset form
+        function resetForm() {
+            document.getElementById('downloadBtn').disabled = false;
+            document.getElementById('downloadBtn').textContent = 'Download Video';
+            document.getElementById('progressBar').style.display = 'none';
+        }
+
+        // Load downloads list
+        async function loadDownloads() {
+            try {
+                const response = await fetch('/downloads');
+                const data = await response.json();
+                
+                const downloadsList = document.getElementById('downloadsList');
+                
+                if (data.files.length === 0) {
+                    downloadsList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No downloads yet</div>';
+                } else {
+                    downloadsList.innerHTML = data.files.map(file => `
+                        <div class="download-item">
+                            <div>
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-size">${formatFileSize(file.size)}</div>
+                            </div>
+                            <a href="/download-file/${encodeURIComponent(file.name)}" class="download-link" download>
+                                Download
+                            </a>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load downloads:', error);
+            }
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Show Facebook preview
+        function showFacebookPreview(downloadId, previewData) {
+            const preview = document.getElementById('facebookPreview');
+            const title = document.getElementById('previewTitle');
+            const description = document.getElementById('previewDescription');
+            const meta = document.getElementById('previewMeta');
+            const thumbnail = document.getElementById('previewThumbnail');
+            const confirmBtn = document.getElementById('previewConfirmBtn');
+            const cancelBtn = document.getElementById('previewCancelBtn');
+            
+            // Populate preview data
+            title.textContent = previewData.final_title || 'Untitled Video';
+            
+            // Show description with indicator of source
+            let descriptionText = previewData.final_description || 'No description';
+            if (previewData.original_description && previewData.final_description === previewData.original_description) {
+                // Using original video description
+                description.textContent = descriptionText;
+                description.style.fontStyle = 'normal';
+            } else if (!previewData.final_description || previewData.final_description === 'Uploaded via Facebook Video Downloader') {
+                // Using default description
+                description.textContent = descriptionText + ' (default)';
+                description.style.fontStyle = 'italic';
+                description.style.opacity = '0.7';
+            } else {
+                // Using user-provided description
+                description.textContent = descriptionText;
+                description.style.fontStyle = 'normal';
+                description.style.opacity = '1';
+            }
+            
+            // Show file size and duration if available
+            let metaText = 'Ready to upload';
+            if (previewData.file_size) {
+                metaText += ` • ${formatFileSize(previewData.file_size)}`;
+            }
+            if (previewData.duration) {
+                metaText += ` • ${formatDuration(previewData.duration)}`;
+            }
+            meta.textContent = metaText;
+            
+            // Show thumbnail if available
+            if (previewData.thumbnail_url) {
+                thumbnail.innerHTML = `<img src="${previewData.thumbnail_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+            } else {
+                thumbnail.innerHTML = '🎥 Video';
+            }
+            
+            // Store data for confirmation
+            confirmBtn.dataset.downloadId = downloadId;
+            confirmBtn.dataset.videoPath = previewData.video_path;
+            confirmBtn.dataset.finalTitle = previewData.final_title;
+            confirmBtn.dataset.finalDescription = previewData.final_description;
+            
+            // Show preview
+            preview.classList.add('show');
+            
+            // Scroll to preview
+            preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // Hide Facebook preview
+        function hideFacebookPreview() {
+            document.getElementById('facebookPreview').classList.remove('show');
+        }
+        
+        // Format duration in seconds to MM:SS format
+        function formatDuration(seconds) {
+            if (!seconds) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Handle Facebook upload confirmation
+        async function confirmFacebookUpload(downloadId, videoPath, finalTitle, finalDescription) {
+            const confirmBtn = document.getElementById('previewConfirmBtn');
+            const cancelBtn = document.getElementById('previewCancelBtn');
+            
+            // Disable buttons
+            confirmBtn.disabled = true;
+            cancelBtn.disabled = true;
+            confirmBtn.textContent = '⏳ Uploading...';
+            
+            try {
+                const response = await fetch('/confirm-facebook-upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        download_id: downloadId,
+                        video_path: videoPath,
+                        final_title: finalTitle,
+                        final_description: finalDescription
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    let successMessage = '🎉 Video successfully uploaded to Facebook!';
+                    if (data.result && data.result.facebook_url) {
+                        successMessage += `\n📺 View your video: ${data.result.facebook_url}`;
+                    }
+                    showStatus(successMessage, 'success');
+                    hideFacebookPreview();
+                    loadDownloads(); // Refresh downloads list
+                } else {
+                    showStatus(`❌ Facebook upload failed: ${data.result || data.error || 'Unknown error'}`, 'error');
+                    // Re-enable buttons
+                    confirmBtn.disabled = false;
+                    cancelBtn.disabled = false;
+                    confirmBtn.textContent = '✅ Upload to Facebook';
+                }
+            } catch (error) {
+                showStatus('Upload error: ' + error.message, 'error');
+                // Re-enable buttons
+                confirmBtn.disabled = false;
+                cancelBtn.disabled = false;
+                confirmBtn.textContent = '✅ Upload to Facebook';
+            }
+        }
+        
+        // Handle Facebook upload cancellation
+        function cancelFacebookUpload() {
+            hideFacebookPreview();
+            showStatus('Facebook upload cancelled. Video has been downloaded to your computer.', 'info');
+            loadDownloads(); // Refresh downloads list
+        }
+        
+        // Event listeners for preview buttons
+        document.getElementById('previewConfirmBtn').addEventListener('click', function() {
+            const downloadId = this.dataset.downloadId;
+            const videoPath = this.dataset.videoPath;
+            const finalTitle = this.dataset.finalTitle;
+            const finalDescription = this.dataset.finalDescription;
+            
+            confirmFacebookUpload(downloadId, videoPath, finalTitle, finalDescription);
+        });
+        
+        document.getElementById('previewCancelBtn').addEventListener('click', function() {
+            cancelFacebookUpload();
+        });
+
+        // Load downloads on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDownloads();
+        });
+    </script>
+</body>
+</html>
