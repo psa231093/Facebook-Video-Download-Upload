@@ -17,8 +17,8 @@ class FacebookUploader:
         
     def upload_video(self, video_path, title="", description="", scheduled_publish_time=None):
         """Upload a video to Facebook profile with optional scheduling"""
-        print(f"\n📤 FACEBOOK VIDEO UPLOAD STARTED")
-        print(f"📝 Parameters:")
+        print(f"\n[UPLOAD] FACEBOOK VIDEO UPLOAD STARTED")
+        print(f"[UPLOAD] Parameters:")
         print(f"   - Video path: {video_path}")
         try:
             print(f"   - Title: {title}")
@@ -36,15 +36,15 @@ class FacebookUploader:
         
         video_file = Path(video_path)
         if not video_file.exists():
-            print(f"❌ Video file not found: {video_path}")
+            print(f"[ERROR] Video file not found: {video_path}")
             return False, "Video file not found"
         
         file_size = video_file.stat().st_size
-        print(f"📊 Video file size: {file_size} bytes ({file_size / (1024*1024):.1f} MB)")
+        print(f"[UPLOAD] Video file size: {file_size} bytes ({file_size / (1024*1024):.1f} MB)")
         
         try:
             # Step 1: Initialize upload session
-            print(f"🔧 Step 1: Initializing upload session...")
+            print(f"[UPLOAD] Step 1: Initializing upload session...")
             init_response = self._initialize_upload(file_size)
             
             if not init_response:
@@ -237,25 +237,45 @@ class FacebookUploader:
         
         try:
             response = requests.post(url, data=data, timeout=60)
-            print(f"📥 Publish response status: {response.status_code}")
+            print(f"[API] Publish response status: {response.status_code}")
             
             if response.status_code == 200:
                 result = response.json()
-                print(f"📋 Publish response: {result}")
+                print(f"[API] Publish response: {result}")
+                
+                # For scheduled posts, check if the response indicates success
+                if scheduled_publish_time:
+                    if 'id' in result:
+                        print(f"[SUCCESS] Scheduled post created with ID: {result['id']}")
+                    else:
+                        print(f"[WARNING] Scheduled post response missing 'id' field")
+                
                 return result
             else:
-                print(f"❌ Publish failed:")
-                print(f"   Status: {response.status_code}")
-                print(f"   Response: {response.text}")
+                print(f"[ERROR] Publish failed:")
+                print(f"        Status: {response.status_code}")
+                print(f"        Response: {response.text}")
+                
+                # Try to parse error response
+                try:
+                    error_data = response.json()
+                    if 'error' in error_data:
+                        error = error_data['error']
+                        print(f"        Error Code: {error.get('code', 'Unknown')}")
+                        print(f"        Error Message: {error.get('message', 'No message')}")
+                        print(f"        Error Type: {error.get('type', 'Unknown')}")
+                except:
+                    print("        Could not parse error response as JSON")
+                
                 return None
                 
         except Exception as e:
-            print(f"💥 Exception in publish_video: {e}")
+            print(f"[ERROR] Exception in publish_video: {e}")
             return None
     
     def test_connection(self):
         """Test Facebook API connection"""
-        print(f"🧪 Testing Facebook API connection...")
+        print(f"[TEST] Testing Facebook API connection...")
         
         url = f"{self.graph_api_url}/me"
         params = {
@@ -280,6 +300,137 @@ class FacebookUploader:
                 
         except Exception as e:
             print(f"💥 Exception in test_connection: {e}")
+            return False, str(e)
+    
+    def get_scheduled_posts(self):
+        """Get scheduled posts from Facebook - only posts with valid future scheduled times"""
+        print(f"📅 Getting scheduled posts...")
+        
+        url = f"{self.graph_api_url}/{self.user_id}/posts"
+        params = {
+            'access_token': self.access_token,
+            'fields': 'id,message,created_time,updated_time,scheduled_publish_time,status_type,full_picture,picture',
+            'is_published': 'false',  # Only get unpublished (scheduled) posts
+            'limit': 50
+        }
+        
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            print(f"📥 Scheduled posts response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                result = response.json()
+                raw_posts = result.get('data', [])
+                print(f"📊 Found {len(raw_posts)} unpublished posts")
+                
+                # Filter to only include posts with valid future scheduled times
+                filtered_posts = []
+                current_timestamp = time.time()
+                
+                for post in raw_posts:
+                    scheduled_time = post.get('scheduled_publish_time')
+                    
+                    # Skip posts without scheduled_publish_time
+                    if not scheduled_time:
+                        print(f"⏭️  Skipping post {post.get('id', 'unknown')} - no scheduled_publish_time")
+                        continue
+                    
+                    # Convert scheduled_publish_time to timestamp for validation
+                    try:
+                        if isinstance(scheduled_time, str):
+                            # Parse ISO format datetime string
+                            from datetime import datetime
+                            dt = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
+                            scheduled_timestamp = dt.timestamp()
+                        else:
+                            scheduled_timestamp = float(scheduled_time)
+                        
+                        # Only include posts scheduled for the future (not 1969 or past dates)
+                        if scheduled_timestamp > current_timestamp:
+                            filtered_posts.append(post)
+                            print(f"✅ Valid scheduled post: {post.get('id', 'unknown')} at {datetime.fromtimestamp(scheduled_timestamp)}")
+                        else:
+                            print(f"⏭️  Skipping post {post.get('id', 'unknown')} - scheduled time is in the past or invalid ({scheduled_time})")
+                            
+                    except (ValueError, TypeError) as e:
+                        print(f"⏭️  Skipping post {post.get('id', 'unknown')} - invalid scheduled_publish_time format: {scheduled_time} ({e})")
+                        continue
+                
+                # Return filtered results
+                filtered_result = {
+                    'data': filtered_posts,
+                    'paging': result.get('paging', {})
+                }
+                
+                print(f"✅ Successfully retrieved scheduled posts!")
+                print(f"📊 Filtered to {len(filtered_posts)} posts with valid future scheduled times")
+                return True, filtered_result
+            else:
+                print(f"❌ Failed to get scheduled posts:")
+                print(f"   Status: {response.status_code}")
+                print(f"   Response: {response.text}")
+                return False, response.text
+                
+        except Exception as e:
+            print(f"💥 Exception in get_scheduled_posts: {e}")
+            return False, str(e)
+    
+    def cancel_scheduled_post(self, post_id):
+        """Cancel a scheduled Facebook post"""
+        print(f"❌ Cancelling scheduled post: {post_id}")
+        
+        url = f"{self.graph_api_url}/{post_id}"
+        params = {
+            'access_token': self.access_token
+        }
+        
+        try:
+            response = requests.delete(url, params=params, timeout=30)
+            print(f"📥 Cancel response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                result = response.json()
+                print(f"✅ Successfully cancelled scheduled post!")
+                print(f"📋 Response: {result}")
+                return True, result
+            else:
+                print(f"❌ Failed to cancel scheduled post:")
+                print(f"   Status: {response.status_code}")
+                print(f"   Response: {response.text}")
+                return False, response.text
+                
+        except Exception as e:
+            print(f"💥 Exception in cancel_scheduled_post: {e}")
+            return False, str(e)
+    
+    def get_video_posts(self, limit=25):
+        """Get video posts from Facebook (both published and scheduled)"""
+        print(f"🎥 Getting video posts...")
+        
+        url = f"{self.graph_api_url}/{self.user_id}/videos"
+        params = {
+            'access_token': self.access_token,
+            'fields': 'id,title,description,created_time,updated_time,scheduled_publish_time,status,source,picture',
+            'limit': limit
+        }
+        
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            print(f"📥 Video posts response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                result = response.json()
+                print(f"✅ Successfully retrieved video posts!")
+                print(f"📊 Found {len(result.get('data', []))} video posts")
+                return True, result
+            else:
+                print(f"❌ Failed to get video posts:")
+                print(f"   Status: {response.status_code}")
+                print(f"   Response: {response.text}")
+                return False, response.text
+                
+        except Exception as e:
+            print(f"💥 Exception in get_video_posts: {e}")
             return False, str(e)
 
 

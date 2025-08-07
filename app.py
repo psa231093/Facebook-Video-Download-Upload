@@ -15,9 +15,9 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 try:
     from dotenv import load_dotenv
     load_dotenv()
-    print("✅ Environment variables loaded from .env file")
+    print("SUCCESS: Environment variables loaded from .env file")
 except ImportError:
-    print("⚠️  python-dotenv not installed, environment variables from system only")
+    print("WARNING: python-dotenv not installed, environment variables from system only")
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -94,6 +94,38 @@ def download_worker(download_id, url, use_cookies, cookies_content, facebook_upl
         
         if success:
             logger.info(f"Download {download_id} completed successfully")
+            
+            # Record the downloaded file in database
+            try:
+                from database import db
+                downloads_dir = Path(DOWNLOAD_CONFIG['output_dir'])
+                video_files = list(downloads_dir.glob('*.mp4')) + list(downloads_dir.glob('*.mkv')) + list(downloads_dir.glob('*.webm'))
+                if video_files:
+                    latest_video = max(video_files, key=lambda x: x.stat().st_mtime)
+                    
+                    # Extract title from metadata
+                    downloader = FacebookDownloader()
+                    video_title = downloader.extract_video_title_from_metadata(str(latest_video))
+                    video_description = downloader.extract_video_description_from_metadata(str(latest_video))
+                    
+                    # Record in database
+                    db.create_downloaded_file(
+                        file_path=str(latest_video),
+                        original_url=url,
+                        title=video_title,
+                        description=video_description,
+                        file_size=latest_video.stat().st_size,
+                        metadata={'download_id': download_id}
+                    )
+                    
+                    # Log analytics event
+                    db.log_event('video_downloaded', {
+                        'url': url, 
+                        'title': video_title,
+                        'file_size': latest_video.stat().st_size
+                    })
+            except Exception as e:
+                logger.error(f"Error recording download in database: {e}")
             
             # Handle Facebook upload if enabled
             facebook_result = None
@@ -471,8 +503,12 @@ def download_video():
         cookies_content = data.get('cookies_content', '').strip()
         facebook_upload = data.get('facebook_upload', {})
         
-        logger.info(f"Download request - URL: {url}, use_cookies: {use_cookies}")
-        logger.info(f"Facebook upload settings: {facebook_upload}")
+        logger.info(f"🎯 SERVER DEBUG - Download request received")
+        logger.info(f"📝 Raw URL from request: '{url}'")
+        logger.info(f"🔗 URL length: {len(url)}")
+        logger.info(f"⏰ Request timestamp: {__import__('datetime').datetime.now().isoformat()}")
+        logger.info(f"🍪 Use cookies: {use_cookies}")
+        logger.info(f"📤 Facebook upload settings: {facebook_upload}")
         
         if not url:
             return jsonify({'error': 'Please provide a video URL'}), 400
@@ -634,14 +670,83 @@ def confirm_facebook_upload():
         # Extract scheduled time if provided
         scheduled_time = scheduling.get('scheduledTime') if is_scheduled else None
         
-        # Perform actual upload
-        upload_success, upload_result = downloader.post_download_actions(
-            video_path=video_path,
-            video_title=final_title,
-            video_description=final_description,
-            auto_upload=True,
-            scheduled_publish_time=scheduled_time
-        )
+        if is_scheduled and scheduled_time:
+            # Create scheduled post on Facebook AND store locally
+            try:
+                from database import db
+                from config import FACEBOOK_CONFIG
+                
+                # Convert scheduled time to timestamp
+                from datetime import datetime
+                
+                # Handle different formats of scheduled_time
+                if isinstance(scheduled_time, str):
+                    # ISO string format - convert to timestamp
+                    scheduled_timestamp = int(datetime.fromisoformat(scheduled_time.replace('Z', '+00:00')).timestamp())
+                elif isinstance(scheduled_time, (int, float)):
+                    # Already a timestamp
+                    scheduled_timestamp = int(scheduled_time)
+                else:
+                    raise ValueError(f"Invalid scheduled_time format: {type(scheduled_time)} - {scheduled_time}")
+                
+                # First, upload to Facebook with scheduling
+                upload_success, upload_result = downloader.post_download_actions(
+                    video_path=video_path,
+                    video_title=final_title,
+                    video_description=final_description,
+                    auto_upload=True,
+                    scheduled_publish_time=scheduled_timestamp
+                )
+                
+                if upload_success:
+                    # Also store in local database for tracking
+                    local_post_id = db.create_scheduled_post(
+                        video_file_path=video_path,
+                        title=final_title,
+                        description=final_description,
+                        scheduled_time=scheduled_timestamp,
+                        user_id=FACEBOOK_CONFIG.get('user_id'),
+                        metadata={
+                            'download_id': download_id,
+                            'facebook_result': upload_result
+                        }
+                    )
+                    
+                    # Log analytics event
+                    db.log_event('post_scheduled', {
+                        'local_post_id': local_post_id,
+                        'title': final_title,
+                        'scheduled_time': scheduled_timestamp,
+                        'facebook_result': upload_result
+                    })
+                    
+                    # Update result with local tracking info
+                    if isinstance(upload_result, dict):
+                        upload_result['local_post_id'] = local_post_id
+                    else:
+                        upload_result = {
+                            'success': True,
+                            'local_post_id': local_post_id,
+                            'facebook_result': upload_result,
+                            'message': f'Post scheduled for {datetime.fromtimestamp(scheduled_timestamp).strftime("%Y-%m-%d %H:%M")}'
+                        }
+                else:
+                    # Facebook upload failed - don't create local record
+                    pass
+                    
+            except Exception as e:
+                logger.error(f"Error creating scheduled post: {e}")
+                upload_success = False
+                upload_result = f'Scheduling error: {str(e)}'
+        else:
+            # Perform immediate upload
+            upload_success, upload_result = downloader.post_download_actions(
+                video_path=video_path,
+                video_title=final_title,
+                video_description=final_description,
+                auto_upload=True,
+                scheduled_publish_time=None
+            )
         
         # Update download status with results
         if download_id in download_status:
@@ -770,11 +875,528 @@ def test_facebook_connection():
         logger.error(f"Error testing Facebook connection: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/scheduled-videos')
+def get_scheduled_videos():
+    """Get scheduled videos for the frontend scheduled videos tab"""
+    try:
+        # Import required modules
+        from facebook_uploader import FacebookUploader
+        from config import FACEBOOK_CONFIG
+        
+        # Get Facebook config
+        access_token = FACEBOOK_CONFIG.get('access_token', '')
+        user_id = FACEBOOK_CONFIG.get('user_id', '')
+        
+        if not access_token or not user_id:
+            return jsonify({
+                'success': False,
+                'error': 'Facebook credentials not configured. Please check your settings.',
+                'videos': []
+            })
+        
+        # Create uploader instance
+        uploader = FacebookUploader(access_token=access_token, user_id=user_id)
+        
+        # Get scheduled posts from Facebook Graph API
+        success, result = uploader.get_scheduled_posts()
+        
+        if success:
+            # Transform Facebook API response to match frontend expectations
+            videos = []
+            
+            # Get current timestamp for validation
+            import time
+            current_timestamp = int(time.time())
+            
+            for post in result.get('data', []):
+                # Extract video information from scheduled post
+                video_info = {
+                    'id': post.get('id', ''),
+                    'title': post.get('message', 'Untitled Video')[:100],  # Truncate long titles
+                    'description': post.get('message', 'No description'),
+                    'scheduled_publish_time': post.get('scheduled_publish_time', 0),
+                    'status': post.get('status', 'SCHEDULED'),
+                    'thumbnail': post.get('full_picture') or post.get('picture'),  # Video thumbnail if available
+                    'created_time': post.get('created_time', ''),
+                    'updated_time': post.get('updated_time', '')
+                }
+                
+                # Convert ISO date string to timestamp if needed and validate
+                scheduled_timestamp = 0
+                if isinstance(video_info['scheduled_publish_time'], str):
+                    try:
+                        from datetime import datetime
+                        dt = datetime.fromisoformat(video_info['scheduled_publish_time'].replace('Z', '+00:00'))
+                        scheduled_timestamp = int(dt.timestamp())
+                    except:
+                        scheduled_timestamp = 0
+                elif isinstance(video_info['scheduled_publish_time'], (int, float)):
+                    scheduled_timestamp = int(video_info['scheduled_publish_time'])
+                
+                # Only include posts with valid future timestamps (not 1969 or past dates)
+                if scheduled_timestamp > current_timestamp:
+                    video_info['scheduled_publish_time'] = scheduled_timestamp
+                    videos.append(video_info)
+                else:
+                    # Skip this post - it has invalid or past scheduled time
+                    logger.info(f"Skipping post {video_info['id']} - invalid scheduled time: {video_info['scheduled_publish_time']}")
+                    continue
+            
+            # Also get local scheduled posts from database
+            try:
+                from database import db
+                local_posts = db.get_scheduled_posts(status='pending')
+                
+                for post in local_posts:
+                    # Validate scheduled time for local posts too
+                    scheduled_time = post.get('scheduled_time', 0)
+                    if scheduled_time and scheduled_time > current_timestamp:
+                        video_info = {
+                            'id': f"local_{post['id']}",
+                            'title': post.get('title', 'Untitled Video'),
+                            'description': post.get('description', 'No description'),
+                            'scheduled_publish_time': scheduled_time,
+                            'status': 'SCHEDULED',
+                            'thumbnail': None,  # Local posts don't have thumbnails yet
+                            'created_time': post.get('created_at', ''),
+                            'updated_time': post.get('updated_at', ''),
+                            'local': True  # Flag to indicate this is a local post
+                        }
+                        videos.append(video_info)
+                    else:
+                        logger.info(f"Skipping local post {post['id']} - invalid scheduled time: {scheduled_time}")
+                    
+            except Exception as db_error:
+                logger.warning(f"Could not fetch local scheduled posts: {db_error}")
+            
+            # Sort by scheduled time (earliest first)
+            videos.sort(key=lambda x: x.get('scheduled_publish_time', 0))
+            
+            return jsonify({
+                'success': True,
+                'videos': videos,
+                'message': f'Found {len(videos)} scheduled videos'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Failed to fetch scheduled videos: {result}',
+                'videos': []
+            })
+        
+    except ImportError as e:
+        logger.error(f"Missing required modules for scheduled videos: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Facebook integration not properly configured',
+            'videos': []
+        })
+    except Exception as e:
+        logger.error(f"Error getting scheduled videos: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}',
+            'videos': []
+        })
+
+@app.route('/cancel-scheduled-video', methods=['POST'])
+def cancel_scheduled_video():
+    """Cancel a scheduled video post"""
+    try:
+        data = request.get_json()
+        video_id = data.get('video_id', '').strip()
+        
+        if not video_id:
+            return jsonify({'success': False, 'error': 'Video ID is required'}), 400
+        
+        # Import required modules
+        from facebook_uploader import FacebookUploader
+        from config import FACEBOOK_CONFIG
+        
+        # Get Facebook config
+        access_token = FACEBOOK_CONFIG.get('access_token', '')
+        user_id = FACEBOOK_CONFIG.get('user_id', '')
+        
+        if not access_token or not user_id:
+            return jsonify({
+                'success': False,
+                'error': 'Facebook credentials not configured. Please check your settings.'
+            }), 400
+        
+        # Check if this is a local post (prefixed with "local_")
+        if video_id.startswith('local_'):
+            # Handle local database post
+            try:
+                from database import db
+                local_id = int(video_id.replace('local_', ''))
+                
+                # Update status to cancelled in database
+                success = db.update_scheduled_post(local_id, status='cancelled')
+                
+                if success:
+                    # Log analytics event
+                    db.log_event('scheduled_post_cancelled', {'post_id': local_id})
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': 'Local scheduled post cancelled successfully'
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Failed to cancel local scheduled post'
+                    })
+                    
+            except Exception as db_error:
+                logger.error(f"Error cancelling local scheduled post: {db_error}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Database error: {str(db_error)}'
+                })
+        else:
+            # Handle Facebook scheduled post
+            uploader = FacebookUploader(access_token=access_token, user_id=user_id)
+            
+            # Cancel the scheduled post using Facebook Graph API
+            success, result = uploader.cancel_scheduled_post(video_id)
+            
+            if success:
+                # Also try to remove from local database if it exists
+                try:
+                    from database import db
+                    # Find and update any matching local posts
+                    posts = db.get_scheduled_posts()
+                    for post in posts:
+                        metadata = post.get('metadata') or {}
+                        if metadata.get('facebook_post_id') == video_id:
+                            db.update_scheduled_post(post['id'], status='cancelled')
+                            break
+                except Exception as db_error:
+                    logger.warning(f"Could not update local database: {db_error}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Scheduled video cancelled successfully'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'Failed to cancel scheduled video: {result}'
+                })
+        
+    except ImportError as e:
+        logger.error(f"Missing required modules for cancelling scheduled videos: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Facebook integration not properly configured'
+        }), 500
+    except Exception as e:
+        logger.error(f"Error cancelling scheduled video: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        }), 500
+
+# Enhanced API Endpoints for new features
+
+@app.route('/api/scheduled-posts')
+def get_scheduled_posts():
+    """Get scheduled posts for calendar"""
+    try:
+        from database import db
+        
+        # Get filter parameters
+        status = request.args.get('status')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Convert date strings to timestamps if provided
+        start_timestamp = None
+        end_timestamp = None
+        
+        if start_date:
+            from datetime import datetime
+            start_timestamp = int(datetime.fromisoformat(start_date).timestamp())
+        
+        if end_date:
+            from datetime import datetime
+            end_timestamp = int(datetime.fromisoformat(end_date).timestamp())
+        
+        posts = db.get_scheduled_posts(status=status, start_date=start_timestamp, end_date=end_timestamp)
+        
+        return jsonify(posts)
+        
+    except Exception as e:
+        logger.error(f"Error getting scheduled posts: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scheduled-posts', methods=['POST'])
+def create_scheduled_post():
+    """Create a new scheduled post"""
+    try:
+        from database import db
+        data = request.get_json()
+        
+        video_file_path = data.get('video_file_path')
+        title = data.get('title')
+        description = data.get('description', '')
+        scheduled_time = data.get('scheduled_time')
+        user_id = data.get('user_id')
+        
+        if not all([video_file_path, title, scheduled_time]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Validate scheduled time is in future
+        from datetime import datetime
+        if scheduled_time <= int(datetime.now().timestamp()):
+            return jsonify({'error': 'Scheduled time must be in the future'}), 400
+        
+        post_id = db.create_scheduled_post(
+            video_file_path=video_file_path,
+            title=title,
+            description=description,
+            scheduled_time=scheduled_time,
+            user_id=user_id,
+            metadata=data.get('metadata')
+        )
+        
+        if post_id:
+            # Log analytics event
+            db.log_event('scheduled_post_created', {'post_id': post_id, 'title': title})
+            return jsonify({'success': True, 'post_id': post_id})
+        else:
+            return jsonify({'error': 'Failed to create scheduled post'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error creating scheduled post: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scheduled-posts/<int:post_id>', methods=['PUT'])
+def update_scheduled_post(post_id):
+    """Update a scheduled post"""
+    try:
+        from database import db
+        data = request.get_json()
+        
+        success = db.update_scheduled_post(post_id, **data)
+        
+        if success:
+            # Log analytics event
+            db.log_event('scheduled_post_updated', {'post_id': post_id})
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Post not found or update failed'}), 404
+            
+    except Exception as e:
+        logger.error(f"Error updating scheduled post {post_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scheduled-posts/<int:post_id>', methods=['DELETE'])
+def delete_scheduled_post(post_id):
+    """Delete a scheduled post"""
+    try:
+        from database import db
+        success = db.delete_scheduled_post(post_id)
+        
+        if success:
+            # Log analytics event
+            db.log_event('scheduled_post_deleted', {'post_id': post_id})
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Post not found'}), 404
+            
+    except Exception as e:
+        logger.error(f"Error deleting scheduled post {post_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/files')
+def get_files():
+    """Get files with pagination and filtering for file manager"""
+    try:
+        from database import db
+        
+        # Get query parameters
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        search = request.args.get('search', '')
+        status = request.args.get('status', '')
+        sort = request.args.get('sort', 'date_desc')
+        
+        offset = (page - 1) * limit
+        
+        # Get files from database
+        files = db.get_downloaded_files(
+            limit=limit,
+            offset=offset,
+            search=search if search else None,
+            status=status if status else None
+        )
+        
+        # Get total count for pagination (simplified for now)
+        total_files = len(db.get_downloaded_files())
+        total_pages = (total_files + limit - 1) // limit
+        
+        # Add file existence check and additional metadata
+        for file in files:
+            file_path = Path(file['file_path'])
+            file['exists'] = file_path.exists()
+            if file['exists']:
+                file['file_size'] = file_path.stat().st_size
+            
+        return jsonify({
+            'files': files,
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_files': total_files,
+                'limit': limit
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting files: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/files/<int:file_id>', methods=['DELETE'])
+def delete_file(file_id):
+    """Delete a file"""
+    try:
+        from database import db
+        
+        # Get file info first
+        files = db.get_downloaded_files()
+        file_record = next((f for f in files if f['id'] == file_id), None)
+        
+        if not file_record:
+            return jsonify({'error': 'File not found'}), 404
+        
+        # Delete physical file
+        file_path = Path(file_record['file_path'])
+        if file_path.exists():
+            file_path.unlink()
+        
+        # Delete from database (would need to implement this method in database.py)
+        # For now, just update status
+        db.update_file_upload_status(file_record['file_path'], 'deleted')
+        
+        # Log analytics event
+        db.log_event('file_deleted', {'file_id': file_id, 'file_path': file_record['file_path']})
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        logger.error(f"Error deleting file {file_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/analytics')
+def get_analytics():
+    """Get analytics data for dashboard"""
+    try:
+        from database import db
+        from datetime import datetime, timedelta
+        
+        # Get analytics summary
+        summary = db.get_analytics_summary()
+        
+        # Get additional metrics
+        pending_posts = len(db.get_scheduled_posts(status='pending'))
+        summary['pending_posts'] = pending_posts
+        
+        # Mock chart data (would implement proper time-series data)
+        charts = {
+            'download_activity': {
+                'labels': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                'data': [12, 19, 3, 5, 2, 3, 20]
+            },
+            'upload_success_rate': {
+                'labels': ['Successful', 'Failed'],
+                'data': [summary.get('successful_uploads', 0), summary.get('total_downloads', 0) - summary.get('successful_uploads', 0)]
+            }
+        }
+        
+        # Mock recent activity
+        activity = [
+            {'type': 'download', 'message': 'Downloaded video: Sample Video', 'timestamp': datetime.now().isoformat()},
+            {'type': 'upload', 'message': 'Uploaded to Facebook: Another Video', 'timestamp': (datetime.now() - timedelta(hours=1)).isoformat()},
+            {'type': 'schedule', 'message': 'Scheduled post for tomorrow', 'timestamp': (datetime.now() - timedelta(hours=2)).isoformat()},
+        ]
+        
+        return jsonify({
+            'summary': summary,
+            'charts': charts,
+            'activity': activity
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting analytics: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scheduler/status')
+def get_scheduler_status():
+    """Get scheduler status and upcoming posts"""
+    try:
+        from scheduler import scheduler
+        status = scheduler.get_scheduler_status()
+        return jsonify(status)
+        
+    except Exception as e:
+        logger.error(f"Error getting scheduler status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scheduler/start', methods=['POST'])
+def start_scheduler():
+    """Start the post scheduler"""
+    try:
+        from scheduler import scheduler
+        scheduler.start()
+        return jsonify({'success': True, 'message': 'Scheduler started'})
+        
+    except Exception as e:
+        logger.error(f"Error starting scheduler: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scheduler/stop', methods=['POST'])
+def stop_scheduler():
+    """Stop the post scheduler"""
+    try:
+        from scheduler import scheduler
+        scheduler.stop()
+        return jsonify({'success': True, 'message': 'Scheduler stopped'})
+        
+    except Exception as e:
+        logger.error(f"Error stopping scheduler: {e}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Create downloads directory
     Path(DOWNLOAD_CONFIG['output_dir']).mkdir(exist_ok=True)
     
+    # Initialize database
+    try:
+        from database import db
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+    
+    # Start the scheduler
+    try:
+        from scheduler import scheduler
+        scheduler.start()
+        logger.info("Post scheduler started")
+    except Exception as e:
+        logger.error(f"Failed to start scheduler: {e}")
+    
     # Run the Flask app
     print("Starting Facebook Video Downloader Web Interface...")
     print("Access the interface at: http://localhost:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("Features: Download videos, Schedule posts, File management, Analytics")
+    
+    try:
+        app.run(debug=True, host='0.0.0.0', port=5000)
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+        try:
+            scheduler.stop()
+            logger.info("Scheduler stopped")
+        except:
+            pass

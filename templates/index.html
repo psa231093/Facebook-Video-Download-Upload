@@ -25,7 +25,7 @@
         }
 
         body {
-            background: var(--gradient-primary);
+            background: white;
             min-height: 100vh;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
@@ -186,6 +186,60 @@
             box-shadow: 0 4px 15px rgba(24, 119, 242, 0.2);
         }
 
+        /* Fix button group spacing for Publishing Options */
+        #publishingOptions .btn {
+            border-radius: 8px !important;
+            margin-right: 8px;
+        }
+
+        #publishingOptions .btn:last-child {
+            margin-right: 0;
+        }
+
+        /* Scheduling section styling */
+        .scheduling-header {
+            background: rgba(248, 249, 250, 0.6);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(24, 119, 242, 0.08);
+        }
+
+        .scheduling-option {
+            background: rgba(248, 249, 250, 0.5);
+            border: 1px solid rgba(24, 119, 242, 0.1) !important;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .scheduling-option:hover {
+            background: rgba(24, 119, 242, 0.03);
+            border-color: rgba(24, 119, 242, 0.2) !important;
+            box-shadow: 0 2px 8px rgba(24, 119, 242, 0.08);
+        }
+
+        .scheduling-option.active {
+            background: rgba(24, 119, 242, 0.05);
+            border-color: rgba(24, 119, 242, 0.25) !important;
+            box-shadow: 0 0 0 1px rgba(24, 119, 242, 0.15);
+        }
+
+        /* Minimalistic text-facebook color class */
+        .text-facebook {
+            color: var(--facebook-blue) !important;
+        }
+
+        /* Enhanced form switch styling */
+        .form-check-input:checked {
+            background-color: var(--facebook-blue);
+            border-color: var(--facebook-blue);
+            box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.2);
+        }
+
+        .form-check-input:focus {
+            border-color: var(--facebook-blue);
+            box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+        }
+
         .form-floating > label {
             color: var(--facebook-dark-gray);
         }
@@ -294,18 +348,6 @@
             margin-bottom: 0.75rem;
         }
 
-        .cookies-section {
-            background: rgba(245, 158, 11, 0.1);
-            border: 1px solid var(--warning-yellow);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            display: none;
-        }
-
-        .cookies-section.show {
-            display: block;
-        }
 
         .upload-settings-card {
             background: rgba(66, 186, 150, 0.1);
@@ -372,6 +414,12 @@
                                     <i class="bi bi-collection-play me-2"></i>Batch Download
                                 </button>
                             </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link custom-tab" id="scheduled-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#scheduled-content" type="button" role="tab">
+                                    <i class="bi bi-calendar-event me-2"></i>Scheduled Videos
+                                </button>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -393,33 +441,6 @@
                                         </label>
                                     </div>
 
-                                    <!-- Authentication Toggle -->
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="useCookies" name="useCookies">
-                                        <label class="form-check-label" for="useCookies">
-                                            <i class="bi bi-shield-lock me-2"></i>Use authentication for private videos
-                                        </label>
-                                    </div>
-
-                                    <!-- Cookies Section -->
-                                    <div class="cookies-section" id="cookiesSection">
-                                        <div class="alert alert-warning d-flex align-items-start">
-                                            <i class="bi bi-info-circle me-3 fs-5"></i>
-                                            <div>
-                                                <h6 class="alert-heading mb-2">Authentication Required</h6>
-                                                <p class="mb-0">
-                                                    <strong>Privacy Note:</strong> Your cookies are only used for this download 
-                                                    and are not stored on the server.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="form-floating">
-                                            <textarea class="form-control" id="cookiesContent" name="cookiesContent" 
-                                                      style="height: 120px; font-family: monospace; font-size: 0.875rem;"
-                                                      placeholder="# Netscape HTTP Cookie File&#10;.facebook.com&#9;TRUE&#9;/&#9;FALSE&#9;1234567890&#9;cookie_name&#9;cookie_value"></textarea>
-                                            <label for="cookiesContent">Paste your cookies.txt content here</label>
-                                        </div>
-                                    </div>
 
                                     <!-- Facebook Auto-Upload Settings -->
                                     <div class="upload-settings-card card">
@@ -441,8 +462,8 @@
                                                 <div class="col-md-6">
                                                     <div class="form-floating">
                                                         <input type="text" class="form-control" id="singleVideoTitlePrefix" 
-                                                               name="singleVideoTitlePrefix" placeholder="[Downloaded] ">
-                                                        <label for="singleVideoTitlePrefix">Title prefix (optional)</label>
+                                                               name="singleVideoTitlePrefix" placeholder="Enter custom title">
+                                                        <label for="singleVideoTitlePrefix">Custom title (optional)</label>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
@@ -546,8 +567,8 @@
                                                 <div class="col-md-6">
                                                     <div class="form-floating">
                                                         <input type="text" class="form-control" id="videoTitlePrefix" 
-                                                               name="videoTitlePrefix" placeholder="[Downloaded] ">
-                                                        <label for="videoTitlePrefix">Title prefix (optional)</label>
+                                                               name="videoTitlePrefix" placeholder="Enter custom title">
+                                                        <label for="videoTitlePrefix">Custom title (optional)</label>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
@@ -562,33 +583,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Authentication -->
-                                    <div class="form-check form-switch mb-3">
-                                        <input class="form-check-input" type="checkbox" id="batchUseCookies" name="batchUseCookies">
-                                        <label class="form-check-label" for="batchUseCookies">
-                                            <i class="bi bi-shield-lock me-2"></i>Use authentication for private videos
-                                        </label>
-                                    </div>
-
-                                    <!-- Batch Cookies Section -->
-                                    <div class="cookies-section" id="batchCookiesSection">
-                                        <div class="alert alert-warning d-flex align-items-start">
-                                            <i class="bi bi-info-circle me-3 fs-5"></i>
-                                            <div>
-                                                <h6 class="alert-heading mb-2">Authentication Required</h6>
-                                                <p class="mb-0">
-                                                    <strong>Privacy Note:</strong> Your cookies are only used for this download 
-                                                    and are not stored on the server.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="form-floating">
-                                            <textarea class="form-control" id="batchCookiesContent" name="batchCookiesContent" 
-                                                      style="height: 120px; font-family: monospace; font-size: 0.875rem;"
-                                                      placeholder="# Netscape HTTP Cookie File&#10;.facebook.com&#9;TRUE&#9;/&#9;FALSE&#9;1234567890&#9;cookie_name&#9;cookie_value"></textarea>
-                                            <label for="batchCookiesContent">Paste your cookies.txt content here</label>
-                                        </div>
-                                    </div>
 
                                     <!-- Download Button -->
                                     <div class="d-grid mt-4">
@@ -643,6 +637,40 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Scheduled Videos Tab -->
+                    <div class="tab-pane fade" id="scheduled-content" role="tabpanel">
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-calendar-event me-2"></i>Scheduled Videos
+                                </h5>
+                                <button class="btn btn-facebook btn-sm" id="refreshScheduledBtn">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <!-- Info Alert -->
+                                <div class="alert alert-info d-flex align-items-start mb-4">
+                                    <i class="bi bi-info-circle me-3 fs-5"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-2">Scheduled Videos Manager</h6>
+                                        <p class="mb-0">View and manage your scheduled Facebook video posts. You can cancel scheduled posts or reschedule them.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Scheduled Videos List -->
+                                <div id="scheduledVideosList">
+                                    <div class="text-center p-4 text-muted">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        Loading scheduled videos...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Status Section -->
@@ -680,56 +708,76 @@
                     <div class="card-body border-top">
                         <div class="row g-3">
                             <div class="col-12">
-                                <h6 class="fw-bold mb-3">
-                                    <i class="bi bi-calendar-event me-2"></i>Publishing Options
-                                </h6>
+                                <div class="scheduling-header mb-4">
+                                    <h6 class="fw-bold mb-2 d-flex align-items-center">
+                                        <i class="bi bi-calendar-event me-2 text-facebook"></i>
+                                        Publishing Schedule
+                                    </h6>
+                                    <p class="text-muted small mb-0">Choose when your video will be published to Facebook</p>
+                                </div>
                             </div>
                             <div class="col-12">
-                                <!-- Publishing Type Selection -->
-                                <div class="btn-group w-100" role="group" id="publishingOptions">
-                                    <input type="radio" class="btn-check" name="publishType" id="publishNow" value="now" checked>
-                                    <label class="btn btn-outline-facebook" for="publishNow">
-                                        <i class="bi bi-upload me-2"></i>Publish Now
-                                    </label>
-                                    
-                                    <input type="radio" class="btn-check" name="publishType" id="schedulePost" value="scheduled">
-                                    <label class="btn btn-outline-facebook" for="schedulePost">
-                                        <i class="bi bi-clock me-2"></i>Schedule Post
-                                    </label>
+                                <!-- Schedule Option -->
+                                <div class="scheduling-option p-3 rounded-3 border">
+                                    <div class="form-check form-switch d-flex align-items-center">
+                                        <input class="form-check-input me-3" type="checkbox" id="schedulePost" name="schedulePost" style="transform: scale(1.1);">
+                                        <label class="form-check-label d-flex align-items-center mb-0" for="schedulePost">
+                                            <i class="bi bi-clock me-3 text-facebook"></i>
+                                            <div>
+                                                <span class="fw-medium">Schedule for later</span>
+                                                <small class="d-block text-muted">Choose a specific date and time to publish</small>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                             
                             <!-- Schedule DateTime Picker (Hidden by default) -->
                             <div class="col-12 d-none" id="schedulingControls">
-                                <div class="row g-2">
-                                    <div class="col-md-6">
-                                        <label for="scheduleDate" class="form-label">Date</label>
-                                        <input type="date" class="form-control" id="scheduleDate" min="">
+                                <div class="scheduling-controls p-3 mt-3 rounded-3" style="background: rgba(24, 119, 242, 0.03); border: 1px solid rgba(24, 119, 242, 0.1);">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="form-floating">
+                                                <input type="date" class="form-control" id="scheduleDate" min="" placeholder="Select date">
+                                                <label for="scheduleDate">
+                                                    <i class="bi bi-calendar3 me-2 text-muted"></i>Date
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-floating">
+                                                <input type="time" class="form-control" id="scheduleTime" placeholder="Select time">
+                                                <label for="scheduleTime">
+                                                    <i class="bi bi-clock me-2 text-muted"></i>Time
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label for="scheduleTime" class="form-label">Time</label>
-                                        <input type="time" class="form-control" id="scheduleTime">
+                                    <div class="alert alert-info mt-3 mb-0 d-flex align-items-start">
+                                        <i class="bi bi-info-circle me-2 text-info flex-shrink-0 mt-1"></i>
+                                        <div>
+                                            <small><strong>Scheduling Requirements:</strong><br>
+                                            Posts must be scheduled at least 10 minutes in the future. All times use your local timezone.</small>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="form-text mt-2">
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    Schedule posts must be at least 10 minutes in the future. Times are in your local timezone.
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="card-footer bg-light">
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <button class="btn btn-outline-secondary w-100" id="previewCancelBtn">
-                                    <i class="bi bi-x-circle me-2"></i>Cancel Upload
-                                </button>
-                            </div>
-                            <div class="col-6">
-                                <button class="btn btn-facebook w-100" id="previewConfirmBtn">
-                                    <i class="bi bi-upload me-2"></i>Upload to Facebook
-                                </button>
+                        <div class="container-fluid">
+                            <div class="row g-3 py-2">
+                                <div class="col-6">
+                                    <button class="btn btn-outline-secondary w-100" id="previewCancelBtn">
+                                        <i class="bi bi-x-circle me-2"></i>Cancel Upload
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button class="btn btn-facebook w-100" id="previewConfirmBtn">
+                                        <i class="bi bi-upload me-2"></i>Upload to Facebook
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -792,33 +840,25 @@
             document.getElementById('batch-content').classList.add('fade-in');
         });
 
-        // Toggle cookies section for single download
-        document.getElementById('useCookies').addEventListener('change', function() {
-            const cookiesSection = document.getElementById('cookiesSection');
-            if (this.checked) {
-                cookiesSection.classList.add('show');
-            } else {
-                cookiesSection.classList.remove('show');
-            }
+        // Add fade-in animation for scheduled tab
+        const scheduledTab = document.getElementById('scheduled-tab');
+        scheduledTab.addEventListener('shown.bs.tab', function (e) {
+            document.getElementById('scheduled-content').classList.add('fade-in');
+            loadScheduledVideos(); // Load scheduled videos when tab is shown
         });
 
-        // Toggle cookies section for batch download
-        document.getElementById('batchUseCookies').addEventListener('change', function() {
-            const cookiesSection = document.getElementById('batchCookiesSection');
-            if (this.checked) {
-                cookiesSection.classList.add('show');
-            } else {
-                cookiesSection.classList.remove('show');
-            }
-        });
 
         // Handle single video form submission
         document.getElementById('downloadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const url = document.getElementById('videoUrl').value.trim();
-            const useCookies = document.getElementById('useCookies').checked;
-            const cookiesContent = document.getElementById('cookiesContent').value.trim();
+            
+            // Debug logging
+            console.log('🎯 FORM SUBMISSION DEBUG:');
+            console.log('📝 Input field value:', url);
+            console.log('🔗 URL length:', url.length);
+            console.log('💻 Full form data capture at:', new Date().toISOString());
             
             // Facebook upload settings
             const autoUploadEnabled = document.getElementById('singleAutoUploadEnabled').checked;
@@ -830,32 +870,33 @@
                 return;
             }
 
-            if (useCookies && !cookiesContent) {
-                showStatus('Please provide cookies content for authentication', 'error');
-                return;
-            }
-
             // Disable form
             const downloadBtn = document.getElementById('downloadBtn');
             downloadBtn.disabled = true;
             downloadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Starting Download...';
             
             try {
+                const requestData = {
+                    url: url,
+                    use_cookies: false,
+                    cookies_content: '',
+                    facebook_upload: {
+                        enabled: autoUploadEnabled,
+                        title_prefix: videoTitlePrefix,
+                        description: videoDescription
+                    }
+                };
+                
+                console.log('📤 SENDING TO SERVER:');
+                console.log('🔗 URL being sent:', requestData.url);
+                console.log('📦 Full request data:', requestData);
+                
                 const response = await fetch('/download', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        url: url,
-                        use_cookies: useCookies,
-                        cookies_content: cookiesContent,
-                        facebook_upload: {
-                            enabled: autoUploadEnabled,
-                            title_prefix: videoTitlePrefix,
-                            description: videoDescription
-                        }
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
                 const data = await response.json();
@@ -880,8 +921,6 @@
             console.log('🎬 BATCH DOWNLOAD FORM SUBMITTED');
             
             const videoUrlsText = document.getElementById('videoUrls').value.trim();
-            const useCookies = document.getElementById('batchUseCookies').checked;
-            const cookiesContent = document.getElementById('batchCookiesContent').value.trim();
             
             // Facebook upload settings
             const autoUploadEnabled = document.getElementById('autoUploadEnabled').checked;
@@ -896,8 +935,6 @@
             console.log('📝 Form data:', {
                 videoUrlsCount: videoUrls.length,
                 videoUrls: videoUrls,
-                useCookies: useCookies,
-                cookiesLength: cookiesContent.length,
                 autoUploadEnabled: autoUploadEnabled,
                 videoTitlePrefix: videoTitlePrefix,
                 videoDescription: videoDescription
@@ -927,11 +964,6 @@
                 return;
             }
 
-            if (useCookies && !cookiesContent) {
-                console.error('❌ Cookies required but not provided');
-                showStatus('Please provide cookies content for authentication', 'error');
-                return;
-            }
 
             console.log('✅ Form validation passed');
 
@@ -943,8 +975,8 @@
             try {
                 const requestData = {
                     video_urls: videoUrls,
-                    use_cookies: useCookies,
-                    cookies_content: cookiesContent,
+                    use_cookies: false,
+                    cookies_content: '',
                     facebook_upload: {
                         enabled: autoUploadEnabled,
                         title_prefix: videoTitlePrefix,
@@ -955,7 +987,6 @@
                 console.log('📤 Preparing request data:', {
                     video_urls_count: requestData.video_urls.length,
                     use_cookies: requestData.use_cookies,
-                    cookies_length: requestData.cookies_content.length,
                     facebook_upload: requestData.facebook_upload
                 });
                 
@@ -1203,10 +1234,32 @@
 
         // Reset form
         function resetForm() {
+            console.log('🧹 RESETTING FORM');
+            
+            // Reset button state
             const downloadBtn = document.getElementById('downloadBtn');
             downloadBtn.disabled = false;
             downloadBtn.innerHTML = '<i class="bi bi-download me-2"></i>Download Video';
+            
+            // Hide progress bar
             document.getElementById('progressBar').classList.add('d-none');
+            
+            // CRITICAL: Clear the URL input field
+            const urlField = document.getElementById('videoUrl');
+            if (urlField) {
+                console.log('🔗 Clearing URL field, old value:', urlField.value);
+                urlField.value = '';
+                console.log('✅ URL field cleared, new value:', urlField.value);
+            }
+            
+            // Clear other form fields for fresh start
+            const titlePrefixField = document.getElementById('singleVideoTitlePrefix');
+            const descriptionField = document.getElementById('singleVideoDescription');
+            
+            if (titlePrefixField) titlePrefixField.value = '';
+            if (descriptionField) descriptionField.value = '';
+            
+            console.log('✅ Form reset complete');
         }
 
         // Global slider state
@@ -1363,6 +1416,99 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        // Global variable to store original video data for dynamic preview
+        let currentPreviewData = null;
+
+        // Update the preview display based on current form values
+        function updatePreviewDisplay() {
+            if (!currentPreviewData) {
+                console.log('❌ No currentPreviewData available for dynamic preview');
+                return;
+            }
+            
+            const title = document.getElementById('previewTitle');
+            const description = document.getElementById('previewDescription');
+            
+            if (!title || !description) {
+                console.log('❌ Preview elements not found');
+                return;
+            }
+            
+            // Get current form values
+            const titlePrefixField = document.getElementById('singleVideoTitlePrefix');
+            const userDescriptionField = document.getElementById('singleVideoDescription');
+            
+            if (!titlePrefixField || !userDescriptionField) {
+                console.log('❌ Form fields not found for dynamic preview');
+                return;
+            }
+            
+            const customTitle = titlePrefixField.value.trim();
+            const userDescription = userDescriptionField.value.trim();
+            
+            console.log('🎬 Updating preview:', {
+                customTitle: customTitle,
+                userDescription: userDescription.substring(0, 50),
+                originalTitle: currentPreviewData.original_title,
+                originalDescription: currentPreviewData.original_description?.substring(0, 50)
+            });
+            
+            // Update title: use custom title if provided, otherwise use original Facebook title
+            const originalTitle = currentPreviewData.original_title || 'Untitled Video';
+            const finalTitle = customTitle ? customTitle : originalTitle;
+            title.textContent = finalTitle;
+            
+            // Update description: use user description or original description
+            let finalDescription = '';
+            let descriptionClass = 'text-muted mb-2';
+            
+            if (userDescription) {
+                // User provided a description
+                finalDescription = userDescription;
+                descriptionClass = 'text-muted mb-2';
+            } else if (currentPreviewData.original_description) {
+                // Use original video description
+                finalDescription = currentPreviewData.original_description;
+                descriptionClass = 'text-muted mb-2';
+            } else {
+                // No description available
+                finalDescription = 'No description (default)';
+                descriptionClass = 'text-muted mb-2 fst-italic opacity-75';
+            }
+            
+            description.textContent = finalDescription;
+            description.className = descriptionClass;
+            
+            console.log('✅ Preview updated:', {
+                finalTitle: finalTitle,
+                finalDescription: finalDescription.substring(0, 50)
+            });
+        }
+
+        // Set up event listeners for dynamic preview updates
+        function setupDynamicPreview() {
+            const titlePrefixField = document.getElementById('singleVideoTitlePrefix');
+            const descriptionField = document.getElementById('singleVideoDescription');
+            
+            if (!titlePrefixField || !descriptionField) {
+                console.log('❌ Cannot set up dynamic preview - form fields not found');
+                return;
+            }
+            
+            console.log('✅ Setting up dynamic preview event listeners');
+            
+            // Add input event listeners for real-time updates
+            titlePrefixField.addEventListener('input', function() {
+                console.log('📝 Custom title changed:', this.value);
+                updatePreviewDisplay();
+            });
+            
+            descriptionField.addEventListener('input', function() {
+                console.log('📝 Description changed:', this.value.substring(0, 50));
+                updatePreviewDisplay();
+            });
+        }
+
         // Show Facebook preview with Bootstrap styling
         function showFacebookPreview(downloadId, previewData) {
             const preview = document.getElementById('facebookPreview');
@@ -1373,24 +1519,14 @@
             const confirmBtn = document.getElementById('previewConfirmBtn');
             const cancelBtn = document.getElementById('previewCancelBtn');
             
-            // Populate preview data
-            title.textContent = previewData.final_title || 'Untitled Video';
+            // Store preview data globally for dynamic updates
+            currentPreviewData = previewData;
             
-            // Show description with indicator of source
-            let descriptionText = previewData.final_description || 'No description';
-            if (previewData.original_description && previewData.final_description === previewData.original_description) {
-                // Using original video description
-                description.textContent = descriptionText;
-                description.className = 'text-muted mb-2';
-            } else if (!previewData.final_description || previewData.final_description === 'Uploaded via Facebook Video Downloader') {
-                // Using default description
-                description.textContent = descriptionText + ' (default)';
-                description.className = 'text-muted mb-2 fst-italic opacity-75';
-            } else {
-                // Using user-provided description
-                description.textContent = descriptionText;
-                description.className = 'text-muted mb-2';
-            }
+            // Initially populate preview with final data
+            updatePreviewDisplay();
+            
+            // Set up dynamic preview updating
+            setupDynamicPreview();
             
             // Show file size and duration if available
             let metaText = 'Ready to upload';
@@ -1412,8 +1548,8 @@
             // Store data for confirmation
             confirmBtn.dataset.downloadId = downloadId;
             confirmBtn.dataset.videoPath = previewData.video_path;
-            confirmBtn.dataset.finalTitle = previewData.final_title;
-            confirmBtn.dataset.finalDescription = previewData.final_description;
+            confirmBtn.dataset.originalTitle = previewData.original_title;
+            confirmBtn.dataset.originalDescription = previewData.original_description;
             
             // Initialize scheduling controls
             initializeSchedulingControls();
@@ -1444,7 +1580,6 @@
         
         // Initialize scheduling controls
         function initializeSchedulingControls() {
-            const publishNow = document.getElementById('publishNow');
             const schedulePost = document.getElementById('schedulePost');
             const schedulingControls = document.getElementById('schedulingControls');
             const scheduleDate = document.getElementById('scheduleDate');
@@ -1452,7 +1587,6 @@
             const confirmBtn = document.getElementById('previewConfirmBtn');
             
             // Reset to default state
-            publishNow.checked = true;
             schedulePost.checked = false;
             schedulingControls.classList.add('d-none');
             
@@ -1471,21 +1605,22 @@
             updateConfirmButtonText();
         }
         
-        // Update confirm button text based on publishing option
+        // Update confirm button text based on scheduling option
         function updateConfirmButtonText() {
             const confirmBtn = document.getElementById('previewConfirmBtn');
-            const publishNow = document.getElementById('publishNow');
+            const schedulePost = document.getElementById('schedulePost');
             
-            if (publishNow.checked) {
-                confirmBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Upload to Facebook';
-            } else {
+            if (schedulePost && schedulePost.checked) {
                 confirmBtn.innerHTML = '<i class="bi bi-calendar-plus me-2"></i>Schedule Post';
+            } else {
+                confirmBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Upload to Facebook';
             }
         }
         
         // Get scheduling data
         function getSchedulingData() {
-            const publishType = document.querySelector('input[name="publishType"]:checked').value;
+            const schedulePost = document.getElementById('schedulePost');
+            const publishType = schedulePost && schedulePost.checked ? 'scheduled' : 'now';
             
             if (publishType === 'scheduled') {
                 const scheduleDate = document.getElementById('scheduleDate').value;
@@ -1526,7 +1661,7 @@
         }
         
         // Handle Facebook upload confirmation
-        async function confirmFacebookUpload(downloadId, videoPath, finalTitle, finalDescription) {
+        async function confirmFacebookUpload(downloadId, videoPath, originalTitle, originalDescription) {
             const confirmBtn = document.getElementById('previewConfirmBtn');
             const cancelBtn = document.getElementById('previewCancelBtn');
             
@@ -1534,6 +1669,14 @@
             if (!validateScheduling()) {
                 return;
             }
+            
+            // Get current form values for final title and description
+            const customTitle = document.getElementById('singleVideoTitlePrefix').value.trim();
+            const userDescription = document.getElementById('singleVideoDescription').value.trim();
+            
+            // Calculate final title and description based on current form state
+            const finalTitle = customTitle ? customTitle : (currentPreviewData.original_title || 'Untitled Video');
+            const finalDescription = userDescription || currentPreviewData.original_description || 'Uploaded via Facebook Video Downloader';
             
             // Get scheduling data
             const schedulingData = getSchedulingData();
@@ -1580,14 +1723,14 @@
                     // Re-enable buttons
                     confirmBtn.disabled = false;
                     cancelBtn.disabled = false;
-                    confirmBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Upload to Facebook';
+                    updateConfirmButtonText();
                 }
             } catch (error) {
                 showStatus('Upload error: ' + error.message, 'error');
                 // Re-enable buttons
                 confirmBtn.disabled = false;
                 cancelBtn.disabled = false;
-                confirmBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Upload to Facebook';
+                updateConfirmButtonText();
             }
         }
         
@@ -1602,10 +1745,11 @@
         document.getElementById('previewConfirmBtn').addEventListener('click', function() {
             const downloadId = this.dataset.downloadId;
             const videoPath = this.dataset.videoPath;
-            const finalTitle = this.dataset.finalTitle;
-            const finalDescription = this.dataset.finalDescription;
+            // Pass original title and description - the function will get current form values
+            const originalTitle = this.dataset.originalTitle || '';
+            const originalDescription = this.dataset.originalDescription || '';
             
-            confirmFacebookUpload(downloadId, videoPath, finalTitle, finalDescription);
+            confirmFacebookUpload(downloadId, videoPath, originalTitle, originalDescription);
         });
         
         document.getElementById('previewCancelBtn').addEventListener('click', function() {
@@ -1620,19 +1764,26 @@
             document.getElementById('downloadsSliderPrev').addEventListener('click', slideDownloadsPrev);
             document.getElementById('downloadsSliderNext').addEventListener('click', slideDownloadsNext);
             
-            // Add scheduling controls event listeners
-            const publishingOptions = document.querySelectorAll('input[name="publishType"]');
-            publishingOptions.forEach(radio => {
-                radio.addEventListener('change', function() {
+            // Add refresh scheduled videos button listener
+            document.getElementById('refreshScheduledBtn').addEventListener('click', loadScheduledVideos);
+            
+            // Add scheduling controls event listener
+            const schedulePostCheckbox = document.getElementById('schedulePost');
+            if (schedulePostCheckbox) {
+                schedulePostCheckbox.addEventListener('change', function() {
                     const schedulingControls = document.getElementById('schedulingControls');
-                    if (this.value === 'scheduled') {
+                    const schedulingOption = document.querySelector('.scheduling-option');
+                    
+                    if (this.checked) {
                         schedulingControls.classList.remove('d-none');
+                        schedulingOption.classList.add('active');
                     } else {
                         schedulingControls.classList.add('d-none');
+                        schedulingOption.classList.remove('active');
                     }
                     updateConfirmButtonText();
                 });
-            });
+            }
         });
     </script>
 
@@ -1700,6 +1851,143 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Scheduled Videos Management Functions
+        async function loadScheduledVideos() {
+            const scheduledList = document.getElementById('scheduledVideosList');
+            
+            try {
+                const response = await fetch('/scheduled-videos');
+                const data = await response.json();
+                
+                if (data.success && data.videos && data.videos.length > 0) {
+                    displayScheduledVideos(data.videos);
+                } else {
+                    scheduledList.innerHTML = `
+                        <div class="text-center p-4 text-muted">
+                            <i class="bi bi-calendar-x fs-1 mb-3 d-block"></i>
+                            <p class="mb-0">No scheduled videos</p>
+                            <small>Videos you schedule for later posting will appear here</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to load scheduled videos:', error);
+                scheduledList.innerHTML = `
+                    <div class="text-center p-4 text-danger">
+                        <i class="bi bi-exclamation-triangle fs-1 mb-3 d-block"></i>
+                        <p class="mb-0">Failed to load scheduled videos</p>
+                        <small>Please check your Facebook connection and try again</small>
+                    </div>
+                `;
+            }
+        }
+
+        function displayScheduledVideos(videos) {
+            const scheduledList = document.getElementById('scheduledVideosList');
+            
+            const videoCards = videos.map(video => {
+                const scheduledDate = new Date(video.scheduled_publish_time * 1000);
+                const now = new Date();
+                const isOverdue = scheduledDate < now;
+                
+                return `
+                    <div class="card mb-3 ${isOverdue ? 'border-warning' : ''}">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-1">
+                                    <div class="video-thumbnail bg-light rounded d-flex align-items-center justify-content-center" style="height: 60px; width: 60px;">
+                                        ${video.thumbnail ? `<img src="${video.thumbnail}" class="w-100 h-100 rounded" style="object-fit: cover;">` : '<i class="bi bi-play-circle fs-4 text-muted"></i>'}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="card-title mb-1">${video.title || 'Untitled Video'}</h6>
+                                    <p class="card-text text-muted mb-1" style="font-size: 0.875rem;">
+                                        ${video.description ? (video.description.length > 100 ? video.description.substring(0, 100) + '...' : video.description) : 'No description'}
+                                    </p>
+                                    <small class="text-secondary">
+                                        <i class="bi bi-calendar me-1"></i>
+                                        Scheduled for: ${scheduledDate.toLocaleDateString()} at ${scheduledDate.toLocaleTimeString()}
+                                        ${isOverdue ? '<span class="badge bg-warning text-dark ms-2">Overdue</span>' : ''}
+                                    </small>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="badge ${getStatusBadgeClass(video.status)}">${getStatusText(video.status)}</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="btn-group-vertical btn-group-sm w-100" role="group">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="editScheduledVideo('${video.id}')">
+                                            <i class="bi bi-pencil me-1"></i>Edit
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="cancelScheduledVideo('${video.id}')">
+                                            <i class="bi bi-trash me-1"></i>Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            scheduledList.innerHTML = videoCards;
+        }
+
+        function getStatusBadgeClass(status) {
+            switch(status) {
+                case 'SCHEDULED': return 'bg-primary';
+                case 'PUBLISHED': return 'bg-success';
+                case 'FAILED': return 'bg-danger';
+                case 'CANCELED': return 'bg-secondary';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'SCHEDULED': return 'Scheduled';
+                case 'PUBLISHED': return 'Published';
+                case 'FAILED': return 'Failed';
+                case 'CANCELED': return 'Canceled';
+                default: return 'Unknown';
+            }
+        }
+
+        async function cancelScheduledVideo(videoId) {
+            if (!confirm('Are you sure you want to cancel this scheduled video?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/cancel-scheduled-video', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ video_id: videoId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showStatus('Scheduled video canceled successfully', 'success');
+                    loadScheduledVideos(); // Refresh the list
+                } else {
+                    showStatus('Failed to cancel scheduled video: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('Error canceling scheduled video: ' + error.message, 'error');
+            }
+        }
+
+        async function editScheduledVideo(videoId) {
+            // This could open a modal for editing scheduled time/details
+            // For now, we'll just redirect to Facebook Creator Studio
+            const confirmEdit = confirm('This will open Facebook Creator Studio where you can edit your scheduled post. Continue?');
+            if (confirmEdit) {
+                window.open('https://business.facebook.com/creatorstudio/', '_blank');
+            }
+        }
+    </script>
 
     <script>
         // Settings Modal JavaScript

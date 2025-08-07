@@ -54,11 +54,52 @@ class FacebookDownloader:
         quality = quality or self.config["quality"]
         format_selector = format_selector or self.config["format"]
         
+        # Pre-download validation: Get video info to verify what we're about to download
+        print(f"[VALIDATE] Checking video URL: {url}")
+        try:
+            # Extract video ID from URL for comparison
+            import re
+            video_id_match = re.search(r'[?&]v=(\d+)', url) or re.search(r'/videos/(\d+)', url)
+            expected_video_id = video_id_match.group(1) if video_id_match else None
+            
+            if expected_video_id:
+                print(f"[VALIDATE] Expected video ID from URL: {expected_video_id}")
+                
+                # Get actual video metadata
+                info_cmd = ["yt-dlp", "--get-id", "--get-title", url]
+                info_result = subprocess.run(info_cmd, capture_output=True, text=True, timeout=30)
+                
+                if info_result.returncode == 0:
+                    lines = info_result.stdout.strip().split('\n')
+                    if len(lines) >= 2:
+                        actual_title = lines[0]
+                        actual_video_id = lines[1]
+                        
+                        print(f"[VALIDATE] Video title: {actual_title}")
+                        print(f"[VALIDATE] Actual video ID: {actual_video_id}")
+                        
+                        # Check if video IDs match
+                        if expected_video_id != actual_video_id:
+                            print(f"[WARNING] Video ID mismatch!")
+                            print(f"          Expected: {expected_video_id}")
+                            print(f"          Actual: {actual_video_id}")
+                            print(f"          This may indicate Facebook is serving different content than requested.")
+                        else:
+                            print(f"[VALIDATE] Video ID verification passed")
+                else:
+                    print(f"[WARNING] Could not verify video info: {info_result.stderr}")
+            else:
+                print(f"[WARNING] Could not extract video ID from URL for validation")
+                
+        except Exception as e:
+            print(f"[WARNING] Pre-download validation failed: {e}")
+        
         # yt-dlp options for Facebook
         options = [
             "yt-dlp",
             "--output", str(self.output_dir / self.config["filename_template"]),
             "--format", f"{quality}[ext={format_selector}]/{quality}",
+            "--restrict-filenames",  # Restrict filenames to ASCII characters only
         ]
         
         if self.config["save_metadata"]:
@@ -83,29 +124,58 @@ class FacebookDownloader:
         options.append(url)
         
         try:
-            print(f"Downloading: {url}")
+            print(f"[DOWNLOAD] Starting download: {url}")
+            
+            # Get list of video files before download to compare
+            output_dir = Path(self.config["output_dir"])
+            video_extensions = ["*.mp4", "*.mkv", "*.webm"]
+            files_before = set()
+            for ext in video_extensions:
+                files_before.update(output_dir.glob(ext))
+            
             result = subprocess.run(options, capture_output=True, text=True)
             
-            # Check if download actually succeeded by looking for created files
-            # yt-dlp sometimes returns non-zero exit codes even on successful downloads
+            # Get list of video files after download
+            files_after = set()
+            for ext in video_extensions:
+                files_after.update(output_dir.glob(ext))
+            
+            # Check if any NEW video files were created OR if the video already exists
+            new_files = files_after - files_before
+            
+            # Check if yt-dlp indicates the file already exists
+            already_exists = "has already been downloaded" in result.stdout if result.stdout else False
+            
             if result.returncode == 0:
-                print("Download completed successfully!")
+                if new_files:
+                    print("Download completed successfully!")
+                    print(f"[DOWNLOAD] New files created: {[f.name for f in new_files]}")
+                elif already_exists:
+                    print("Download completed successfully (file already exists)!")
+                    print(f"[DOWNLOAD] Video was already downloaded previously")
+                else:
+                    print("Download completed successfully!")
+                return True
+            elif new_files:
+                # New files were created despite error code
+                print("Download completed successfully (despite error code)!")
+                print(f"[DOWNLOAD] New files created: {[f.name for f in new_files]}")
+                if result.stderr:
+                    print(f"Warning: {result.stderr}")
+                return True
+            elif already_exists:
+                # File already exists - this is still a success
+                print("Download completed successfully (file already exists)!")
+                print(f"[DOWNLOAD] Video was already downloaded previously")
                 return True
             else:
-                # Check if any video files were created despite the error
-                import glob
-                output_dir = Path(self.config["output_dir"])
-                video_files = list(output_dir.glob("*.mp4")) + list(output_dir.glob("*.mkv")) + list(output_dir.glob("*.webm"))
-                
-                if video_files:
-                    # Files were created, so download likely succeeded despite error code
-                    print("Download completed successfully (despite error code)!")
-                    if result.stderr:
-                        print(f"Warning: {result.stderr}")
-                    return True
-                else:
-                    print(f"Download failed: {result.stderr if result.stderr else 'Unknown error'}")
-                    return False
+                # No new files were created and no indication of existing file - download failed
+                print(f"[ERROR] Download failed: No new video files were created")
+                if result.stderr:
+                    print(f"[ERROR] yt-dlp stderr: {result.stderr}")
+                if result.stdout:
+                    print(f"[ERROR] yt-dlp stdout: {result.stdout}")
+                return False
                     
         except Exception as e:
             print(f"Download failed with exception: {e}")
@@ -127,11 +197,52 @@ class FacebookDownloader:
         quality = quality or self.config["quality"]
         format_selector = format_selector or self.config["format"]
         
+        # Pre-download validation: Get video info to verify what we're about to download
+        print(f"[VALIDATE] Checking video URL with cookies: {url}")
+        try:
+            # Extract video ID from URL for comparison
+            import re
+            video_id_match = re.search(r'[?&]v=(\d+)', url) or re.search(r'/videos/(\d+)', url)
+            expected_video_id = video_id_match.group(1) if video_id_match else None
+            
+            if expected_video_id:
+                print(f"[VALIDATE] Expected video ID from URL: {expected_video_id}")
+                
+                # Get actual video metadata
+                info_cmd = ["yt-dlp", "--cookies", cookies_file, "--get-id", "--get-title", url]
+                info_result = subprocess.run(info_cmd, capture_output=True, text=True, timeout=30)
+                
+                if info_result.returncode == 0:
+                    lines = info_result.stdout.strip().split('\n')
+                    if len(lines) >= 2:
+                        actual_title = lines[0]
+                        actual_video_id = lines[1]
+                        
+                        print(f"[VALIDATE] Video title: {actual_title}")
+                        print(f"[VALIDATE] Actual video ID: {actual_video_id}")
+                        
+                        # Check if video IDs match
+                        if expected_video_id != actual_video_id:
+                            print(f"[WARNING] Video ID mismatch!")
+                            print(f"          Expected: {expected_video_id}")
+                            print(f"          Actual: {actual_video_id}")
+                            print(f"          This may indicate Facebook is serving different content than requested.")
+                        else:
+                            print(f"[VALIDATE] Video ID verification passed")
+                else:
+                    print(f"[WARNING] Could not verify video info: {info_result.stderr}")
+            else:
+                print(f"[WARNING] Could not extract video ID from URL for validation")
+                
+        except Exception as e:
+            print(f"[WARNING] Pre-download validation failed: {e}")
+        
         options = [
             "yt-dlp",
             "--cookies", cookies_file,
             "--output", str(self.output_dir / self.config["filename_template"]),
             "--format", f"{quality}[ext={format_selector}]/{quality}",
+            "--restrict-filenames",  # Restrict filenames to ASCII characters only
         ]
         
         if self.config["save_metadata"]:
@@ -159,33 +270,80 @@ class FacebookDownloader:
         options.append(url)
         
         try:
-            print(f"Downloading with authentication: {url}")
-            result = subprocess.run(options, check=True, capture_output=True, text=True)
-            print("Download completed successfully!")
-            return True
-        except subprocess.CalledProcessError as e:
-            print(f"Download failed: {e}")
-            print(f"Error output: {e.stderr}")
+            print(f"[DOWNLOAD] Starting authenticated download: {url}")
+            
+            # Get list of video files before download to compare
+            output_dir = Path(self.config["output_dir"])
+            video_extensions = ["*.mp4", "*.mkv", "*.webm"]
+            files_before = set()
+            for ext in video_extensions:
+                files_before.update(output_dir.glob(ext))
+            
+            result = subprocess.run(options, capture_output=True, text=True)
+            
+            # Get list of video files after download
+            files_after = set()
+            for ext in video_extensions:
+                files_after.update(output_dir.glob(ext))
+            
+            # Check if any NEW video files were created OR if the video already exists
+            new_files = files_after - files_before
+            
+            # Check if yt-dlp indicates the file already exists
+            already_exists = "has already been downloaded" in result.stdout if result.stdout else False
+            
+            if result.returncode == 0:
+                if new_files:
+                    print("Download completed successfully!")
+                    print(f"[DOWNLOAD] New files created: {[f.name for f in new_files]}")
+                elif already_exists:
+                    print("Download completed successfully (file already exists)!")
+                    print(f"[DOWNLOAD] Video was already downloaded previously")
+                else:
+                    print("Download completed successfully!")
+                return True
+            elif new_files:
+                # New files were created despite error code
+                print("Download completed successfully (despite error code)!")
+                print(f"[DOWNLOAD] New files created: {[f.name for f in new_files]}")
+                if result.stderr:
+                    print(f"Warning: {result.stderr}")
+                return True
+            elif already_exists:
+                # File already exists - this is still a success
+                print("Download completed successfully (file already exists)!")
+                print(f"[DOWNLOAD] Video was already downloaded previously")
+                return True
+            else:
+                # No new files were created and no indication of existing file - download failed
+                print(f"[ERROR] Authenticated download failed: No new video files were created")
+                if result.stderr:
+                    print(f"[ERROR] yt-dlp stderr: {result.stderr}")
+                if result.stdout:
+                    print(f"[ERROR] yt-dlp stdout: {result.stdout}")
+                return False
+        except Exception as e:
+            print(f"Authenticated download failed with exception: {e}")
             return False
     
     def get_video_list(self, page_url, cookies_file=None, max_videos=None):
         """Get list of videos from a Facebook page/profile"""
-        print(f"\n🎬 GET_VIDEO_LIST CALLED")
-        print(f"📝 Parameters:")
+        print(f"\n[VIDEO_LIST] GET_VIDEO_LIST CALLED")
+        print(f"[VIDEO_LIST] Parameters:")
         print(f"   - Page URL: {page_url}")
         print(f"   - Cookies file: {cookies_file}")
         print(f"   - Max videos: {max_videos}")
         
         if not self.check_ytdlp():
-            print("❌ yt-dlp not found. Installing...")
+            print("[ERROR] yt-dlp not found. Installing...")
             if not self.install_ytdlp():
-                print("❌ Failed to install yt-dlp")
+                print("[ERROR] Failed to install yt-dlp")
                 return []
-            print("✅ yt-dlp installed successfully")
+            print("[SUCCESS] yt-dlp installed successfully")
         else:
-            print("✅ yt-dlp is available")
+            print("[SUCCESS] yt-dlp is available")
         
-        print(f"🔍 Starting video list extraction from: {page_url}")
+        print(f"[VIDEO_LIST] Starting video list extraction from: {page_url}")
         
         # Try multiple extraction methods
         extraction_methods = [

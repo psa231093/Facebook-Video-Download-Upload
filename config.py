@@ -19,8 +19,8 @@ DOWNLOAD_CONFIG = {
     # Whether to save video metadata as JSON
     "save_metadata": True,
     
-    # Filename template (yt-dlp format)
-    "filename_template": "%(title)s.%(ext)s",
+    # Filename template (yt-dlp format) - using ID to avoid special character issues
+    "filename_template": "%(title).200s [%(id)s].%(ext)s",
     
     # Maximum file size in MB (0 = no limit)
     "max_filesize": 0,
