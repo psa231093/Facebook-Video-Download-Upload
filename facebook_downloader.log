@@ -1,0 +1,27 @@
+2025-08-07 22:38:15,412 - __main__ - INFO - Successfully imported downloader modules
+2025-08-07 22:38:15,419 - database - INFO - Database initialized successfully
+2025-08-07 22:38:15,420 - __main__ - INFO - Database initialized successfully
+2025-08-07 22:38:15,627 - scheduler - INFO - Post scheduler started
+2025-08-07 22:38:15,627 - __main__ - INFO - Post scheduler started
+2025-08-07 22:38:15,637 - werkzeug - WARNING -  * Debugger is active!
+2025-08-07 22:38:15,639 - werkzeug - INFO -  * Debugger PIN: 122-518-746
+2025-08-07 22:38:28,666 - werkzeug - INFO -  * Detected change in 'C:\\Users\\pablo\\Downloads\\Facebook-Video-Download-Upload\\Facebook-Video-Download-Upload-main\\app.py', reloading
+2025-08-07 22:38:28,866 - __main__ - INFO - Successfully imported downloader modules
+2025-08-07 22:38:28,873 - database - INFO - Database initialized successfully
+2025-08-07 22:38:28,873 - __main__ - INFO - Database initialized successfully
+2025-08-07 22:38:29,073 - scheduler - INFO - Post scheduler started
+2025-08-07 22:38:29,073 - __main__ - INFO - Post scheduler started
+2025-08-07 22:38:29,074 - __main__ - INFO - Starting Flask application on http://localhost:5000
+2025-08-07 22:38:29,083 - werkzeug - WARNING -  * Debugger is active!
+2025-08-07 22:38:29,084 - werkzeug - INFO -  * Debugger PIN: 122-518-746
+2025-08-07 22:38:38,534 - __main__ - INFO - Successfully imported downloader modules
+2025-08-07 22:38:38,542 - database - INFO - Database initialized successfully
+2025-08-07 22:38:38,542 - __main__ - INFO - Database initialized successfully
+2025-08-07 22:38:38,745 - scheduler - INFO - Post scheduler started
+2025-08-07 22:38:38,745 - __main__ - INFO - Post scheduler started
+2025-08-07 22:38:38,745 - __main__ - INFO - Starting Flask application on http://localhost:5000
+2025-08-07 22:38:39,595 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.0.9:5000
+2025-08-07 22:38:39,595 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
