@@ -1,0 +1,55 @@
+# Downloads folder with videos
+downloads/
+*.mp4
+*.mkv
+*.webm
+*.info.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Environment variables
+.env.local
+.env.production
+
+# Test files
+test_*.py
+*_test.py
+debug_*.py
+
+# Temporary files
+*.tmp
+temp_*
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local settings
+.claude/settings.local.json
